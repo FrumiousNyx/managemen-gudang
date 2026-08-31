@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# managemen-gudang
+
+A production-ready, mobile-friendly inventory management web application for clothing brands using Next.js 14+, Tailwind CSS, TypeScript, Lucide Icons, and Supabase.
+
+## Features
+
+- **Dashboard Stok**: Real-time inventory metrics with search functionality
+- **QC Inbound**: Add products that passed quality control to warehouse stock
+- **Packing Outbound**: Multi-mode barcode scanning (Single/Bulk) with atomic database operations
+- **Master SKU**: Manage product SKUs and inventory information
+- **Modern UI/UX**: Apple/Tesla Dashboard aesthetic with dark mode support
+
+## Tech Stack
+
+- **Framework**: Next.js 14+ (App Router)
+- **Styling**: Tailwind CSS
+- **Database**: Supabase (PostgreSQL)
+- **Icons**: Lucide React
+- **Font**: Inter (Google Fonts)
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up Supabase database using `supabase-schema.sql`
+4. Configure environment variables in `.env.local`
+5. Run development server: `npm run dev`
+
+## Environment Variables
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup Instructions
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+See [SETUP.md](./SETUP.md) for detailed setup instructions.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Database Schema
 
-## Learn More
+The application uses Supabase PostgreSQL with the following tables:
+- `products`: Product information and stock levels
+- `inventory_logs`: Audit trail for all inventory transactions
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [supabase-schema.sql](./supabase-schema.sql) for the complete database schema.

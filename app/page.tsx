@@ -26,6 +26,12 @@ export default function Dashboard() {
   }, [searchTerm, products])
 
   const fetchProducts = async () => {
+    if (!supabase) {
+      console.error('Supabase client not initialized')
+      setLoading(false)
+      return
+    }
+
     try {
       const { data, error } = await supabase
         .from('products')

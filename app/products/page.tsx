@@ -22,6 +22,12 @@ export default function Products() {
   }, [])
 
   const fetchProducts = async () => {
+    if (!supabase) {
+      console.error('Supabase client not initialized')
+      showToast('error', 'Database connection not configured')
+      return
+    }
+
     try {
       const { data, error } = await supabase
         .from('products')
@@ -39,6 +45,11 @@ export default function Products() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!supabase) {
+      showToast('error', 'Database connection not configured')
+      return
+    }
+
     if (!formData.name || !formData.color || !formData.size || !formData.sku) {
       showToast('error', 'Please fill in all fields')
       return
@@ -87,6 +98,11 @@ export default function Products() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return
+
+    if (!supabase) {
+      showToast('error', 'Database connection not configured')
+      return
+    }
 
     try {
       const { error } = await supabase

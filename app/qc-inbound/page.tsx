@@ -18,6 +18,12 @@ export default function QCInbound() {
   }, [])
 
   const fetchProducts = async () => {
+    if (!supabase) {
+      console.error('Supabase client not initialized')
+      showToast('error', 'Database connection not configured')
+      return
+    }
+
     try {
       const { data, error } = await supabase
         .from('products')
@@ -43,6 +49,11 @@ export default function QCInbound() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!supabase) {
+      showToast('error', 'Database connection not configured')
+      return
+    }
+
     if (!selectedProduct) {
       showToast('error', 'Please select a product')
       return

@@ -97,6 +97,15 @@ export default function PackingOutbound() {
       const sku = barcodeInput.trim()
       const qty = parseInt(quantity) || 1
       
+      if (!supabase) {
+        setErrorMessage('Database connection not configured')
+        playErrorSound()
+        showToast('error', 'Database connection not configured')
+        setBarcodeInput('')
+        if (inputRef.current) inputRef.current.focus()
+        return
+      }
+      
       try {
         // Use atomic RPC function for safe stock deduction
         const { data: rpcResult, error: rpcError } = await supabase

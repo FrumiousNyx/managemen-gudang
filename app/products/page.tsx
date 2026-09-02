@@ -24,7 +24,7 @@ export default function Products() {
   const fetchProducts = async () => {
     if (!supabase) {
       console.error('Supabase client not initialized')
-      showToast('error', 'Database connection not configured')
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
       return
     }
 
@@ -38,7 +38,7 @@ export default function Products() {
       setProducts(data || [])
     } catch (error) {
       console.error('Error fetching products:', error)
-      showToast('error', 'Failed to load products')
+      showToast('error', 'Gagal memuat produk')
     }
   }
 
@@ -46,12 +46,12 @@ export default function Products() {
     e.preventDefault()
     
     if (!supabase) {
-      showToast('error', 'Database connection not configured')
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
       return
     }
 
     if (!formData.name || !formData.color || !formData.size || !formData.sku) {
-      showToast('error', 'Please fill in all fields')
+      showToast('error', 'Silakan isi semua kolom')
       return
     }
 
@@ -66,7 +66,7 @@ export default function Products() {
         .single()
 
       if (existingProduct) {
-        showToast('error', 'SKU already exists')
+        showToast('error', 'SKU sudah ada')
         setLoading(false)
         return
       }
@@ -84,23 +84,23 @@ export default function Products() {
 
       if (error) throw error
 
-      showToast('success', 'Product added successfully')
+      showToast('success', 'Produk berhasil ditambahkan')
       setIsModalOpen(false)
       setFormData({ name: '', color: '', size: '', sku: '' })
       await fetchProducts()
     } catch (error) {
       console.error('Error adding product:', error)
-      showToast('error', 'Failed to add product')
+      showToast('error', 'Gagal menambah produk')
     } finally {
       setLoading(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return
+    if (!confirm('Apakah Anda yakin ingin menghapus produk ini?')) return
 
     if (!supabase) {
-      showToast('error', 'Database connection not configured')
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
       return
     }
 
@@ -112,11 +112,11 @@ export default function Products() {
 
       if (error) throw error
 
-      showToast('success', 'Product deleted successfully')
+      showToast('success', 'Produk berhasil dihapus')
       await fetchProducts()
     } catch (error) {
       console.error('Error deleting product:', error)
-      showToast('error', 'Failed to delete product')
+      showToast('error', 'Gagal menghapus produk')
     }
   }
 
@@ -130,15 +130,15 @@ export default function Products() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Products</h1>
-          <p className="mt-2 text-slate-500 dark:text-zinc-400">Manage product SKUs and inventory information</p>
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Produk</h1>
+          <p className="mt-2 text-slate-500 dark:text-zinc-400">Kelola SKU produk dan informasi inventaris</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
           className="flex items-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
         >
           <Plus className="h-5 w-5 mr-2" />
-          Add New SKU
+          Tambah SKU Baru
         </button>
       </div>
 
@@ -167,7 +167,7 @@ export default function Products() {
                   Status
                 </th>
                 <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-                  Actions
+                  Aksi
                 </th>
               </tr>
             </thead>
@@ -210,7 +210,7 @@ export default function Products() {
               {products.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center text-slate-500 dark:text-zinc-400">
-                    No products found. Add your first SKU to get started.
+                    Tidak ada produk ditemukan. Tambah SKU pertama Anda untuk memulai.
                   </td>
                 </tr>
               )}
@@ -224,7 +224,7 @@ export default function Products() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-zinc-800">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Add New Product SKU</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Tambah SKU Produk Baru</h2>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
@@ -256,7 +256,7 @@ export default function Products() {
                   type="text"
                   value={formData.color}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  placeholder="e.g., Black"
+                  placeholder="contoh: Hitam"
                   className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                   required
                 />
@@ -270,7 +270,7 @@ export default function Products() {
                   type="text"
                   value={formData.size}
                   onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                  placeholder="e.g., L"
+                  placeholder="contoh: L"
                   className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                   required
                 />
@@ -284,12 +284,12 @@ export default function Products() {
                   type="text"
                   value={formData.sku}
                   onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  placeholder="e.g., AURELIA-BLK-L"
+                  placeholder="contoh: AURELIA-BLK-L"
                   className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                   required
                 />
                 <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
-                  This will be used as the barcode identifier for scanning
+                  Ini akan digunakan sebagai pengenal barcode untuk pemindaian
                 </p>
               </div>
 
@@ -299,14 +299,14 @@ export default function Products() {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
                   className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
                 >
-                  {loading ? 'Adding...' : 'Add Product'}
+                  {loading ? 'Menambahkan...' : 'Tambah Produk'}
                 </button>
               </div>
             </form>

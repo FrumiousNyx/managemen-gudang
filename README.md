@@ -1,16 +1,16 @@
 # managemen-gudang
 
-A production-ready, mobile-friendly inventory management web application for clothing brands using Next.js 14+, Tailwind CSS, TypeScript, Lucide Icons, and Supabase.
+Aplikasi web manajemen inventaris yang siap produksi, ramah mobile untuk merek pakaian menggunakan Next.js 14+, Tailwind CSS, TypeScript, Lucide Icons, dan Supabase.
 
-## Features
+## Fitur
 
-- **Dashboard Stok**: Real-time inventory metrics with search functionality
-- **QC Inbound**: Add products that passed quality control to warehouse stock
-- **Packing Outbound**: Multi-mode barcode scanning (Single/Bulk) with atomic database operations
-- **Master SKU**: Manage product SKUs and inventory information
-- **Modern UI/UX**: Apple/Tesla Dashboard aesthetic with dark mode support
+- **Dasbor Stok**: Metrik inventaris real-time dengan fungsi pencarian
+- **Input QC**: Tambah produk yang lulus quality control ke stok gudang
+- **Pengemasan**: Pemindaian barcode multi-mode (Satu/Banyak) dengan operasi database atomik
+- **Master SKU**: Kelola SKU produk dan informasi inventaris
+- **UI/UX Modern**: Estetika Dashboard Apple/Tesla dengan dukungan mode gelap
 
-## Tech Stack
+## Teknologi
 
 - **Framework**: Next.js 14+ (App Router)
 - **Styling**: Tailwind CSS
@@ -18,29 +18,29 @@ A production-ready, mobile-friendly inventory management web application for clo
 - **Icons**: Lucide React
 - **Font**: Inter (Google Fonts)
 
-## Getting Started
+## Memulai
 
-1. Clone the repository
+1. Clone repository
 2. Install dependencies: `npm install`
-3. Set up Supabase database using `supabase-schema.sql`
-4. Configure environment variables in `.env.local`
-5. Run development server: `npm run dev`
+3. Set up database Supabase menggunakan `supabase-schema.sql`
+4. Konfigurasi environment variables di `.env.local`
+5. Jalankan development server: `npm run dev`
 
 ## Environment Variables
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_SUPABASE_URL=url-proyek-supabase-anda
+NEXT_PUBLIC_SUPABASE_ANON_KEY=anon-key-supabase-anda
 ```
 
-## Setup Instructions
+## Instruksi Setup
 
-See [SETUP.md](./SETUP.md) for detailed setup instructions.
+Lihat [SETUP.md](./SETUP.md) untuk instruksi setup detail.
 
-## Database Schema
+## Skema Database
 
-The application uses Supabase PostgreSQL with the following tables:
-- `products`: Product information and stock levels
-- `inventory_logs`: Audit trail for all inventory transactions
+Aplikasi menggunakan Supabase PostgreSQL dengan tabel berikut:
+- `products`: Informasi produk dan level stok
+- `inventory_logs`: Audit trail untuk semua transaksi inventaris
 
-See [supabase-schema.sql](./supabase-schema.sql) for the complete database schema.
+Lihat [supabase-schema.sql](./supabase-schema.sql) untuk skema database lengkap.

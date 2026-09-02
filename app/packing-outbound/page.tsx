@@ -98,9 +98,9 @@ export default function PackingOutbound() {
       const qty = parseInt(quantity) || 1
       
       if (!supabase) {
-        setErrorMessage('Database connection not configured')
+        setErrorMessage('Koneksi database tidak dikonfigurasi')
         playErrorSound()
-        showToast('error', 'Database connection not configured')
+        showToast('error', 'Koneksi database tidak dikonfigurasi')
         setBarcodeInput('')
         if (inputRef.current) inputRef.current.focus()
         return
@@ -149,7 +149,7 @@ export default function PackingOutbound() {
           .single()
 
         if (productError || !product) {
-          setErrorMessage('Error fetching product details')
+          setErrorMessage('Error mengambil detail produk')
           playErrorSound()
           setBarcodeInput('')
           if (inputRef.current) inputRef.current.focus()
@@ -190,9 +190,9 @@ export default function PackingOutbound() {
         setTimeout(() => setSuccessMessage(''), 2000)
       } catch (error) {
         console.error('Error processing scan:', error)
-        setErrorMessage('Error processing scan')
+        setErrorMessage('Error memproses pindai')
         playErrorSound()
-        showToast('error', 'Error processing scan')
+        showToast('error', 'Error memproses pindai')
         setBarcodeInput('')
         
         // Reset quantity to 1 in bulk mode after error
@@ -216,14 +216,14 @@ export default function PackingOutbound() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Packing</h1>
-        <p className="mt-2 text-slate-500 dark:text-zinc-400">Scan barcode stickers to deduct stock during packing</p>
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Pengemasan</h1>
+        <p className="mt-2 text-slate-500 dark:text-zinc-400">Pindai stiker barcode untuk mengurangi stok saat pengemasan</p>
       </div>
 
       {/* Mode Switcher */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Scan Mode</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Mode Pindai</h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setScanMode('single')}
@@ -234,7 +234,7 @@ export default function PackingOutbound() {
               }`}
             >
               <Zap className="h-4 w-4 mr-2" />
-              Single Scan (-1)
+              Satu Pindai (-1)
             </button>
             <button
               onClick={() => setScanMode('bulk')}
@@ -245,7 +245,7 @@ export default function PackingOutbound() {
               }`}
             >
               <Layers className="h-4 w-4 mr-2" />
-              Bulk Scan (-N)
+              Banyak Pindai (-N)
             </button>
           </div>
         </div>
@@ -253,7 +253,7 @@ export default function PackingOutbound() {
         {/* Barcode Scanner Input */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-3">
-            Barcode Scanner Input
+            Input Pemindai Barcode
           </label>
           <div className="flex gap-3">
             <div className="relative flex-1">
@@ -264,7 +264,7 @@ export default function PackingOutbound() {
                 value={barcodeInput}
                 onChange={(e) => setBarcodeInput(e.target.value)}
                 onKeyDown={handleBarcodeScan}
-                placeholder="Scan barcode here..."
+                placeholder="Pindai barcode di sini..."
                 className="w-full pl-12 pr-4 py-4 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg"
                 autoFocus
               />
@@ -287,8 +287,8 @@ export default function PackingOutbound() {
           <p className="mt-3 text-sm text-slate-500 dark:text-zinc-400">
             <Scan className="inline h-4 w-4 mr-1" />
             {scanMode === 'single' 
-              ? 'Single Scan mode: Each scan deducts 1 unit from stock. Perfect for individual item packing.'
-              : 'Bulk Scan mode: Enter quantity, then scan barcode once to deduct multiple units. Reset to 1 after each scan.'}
+              ? 'Mode Satu Pindai: Setiap pindai mengurangi 1 unit dari stok. Cocok untuk pengemasan item individu.'
+              : 'Mode Banyak Pindai: Masukkan jumlah, lalu pindai barcode sekali untuk mengurangi banyak unit. Reset ke 1 setelah setiap pindai.'}
           </p>
         </div>
 
@@ -316,13 +316,13 @@ export default function PackingOutbound() {
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100 mb-4 flex items-center">
           <Package className="h-5 w-5 mr-2" />
-          Recently Scanned Items
+          Item yang Baru Dipindai
         </h2>
         
         {recentlyScanned.length === 0 ? (
           <div className="text-center py-12 text-slate-500 dark:text-zinc-400">
             <Scan className="h-16 w-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700" />
-            <p className="text-lg">No items scanned yet. Start scanning to see items here.</p>
+            <p className="text-lg">Belum ada item yang dipindai. Mulai pindai untuk melihat item di sini.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -354,16 +354,16 @@ export default function PackingOutbound() {
 
       {/* Instructions */}
       <div className="mt-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instructions</h3>
+        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
-          <li>• Ensure your barcode scanner is connected and working</li>
-          <li>• <strong>Single Scan Mode:</strong> Scan each barcode individually for 1-unit deductions</li>
-          <li>• <strong>Bulk Scan Mode:</strong> Enter quantity first, then scan barcode once for multiple units</li>
-          <li>• Quantity automatically resets to 1 after each bulk scan to prevent errors</li>
-          <li>• Stock validation prevents overselling with clear error messages</li>
-          <li>• Atomic database operations prevent race conditions in multi-user environments</li>
-          <li>• Audio feedback confirms successful scans and alerts for errors</li>
-          <li>• The input automatically refocuses for continuous scanning</li>
+          <li>• Pastikan pemindai barcode Anda terhubung dan berfungsi</li>
+          <li>• <strong>Mode Satu Pindai:</strong> Pindai setiap barcode secara individu untuk pengurangan 1 unit</li>
+          <li>• <strong>Mode Banyak Pindai:</strong> Masukkan jumlah terlebih dahulu, lalu pindai barcode sekali untuk banyak unit</li>
+          <li>• Jumlah otomatis reset ke 1 setelah setiap pindai banyak untuk mencegah kesalahan</li>
+          <li>• Validasi stok mencegah overselling dengan pesan error yang jelas</li>
+          <li>• Operasi database atomik mencegah race condition di lingkungan multi-user</li>
+          <li>• Feedback audio mengkonfirmasi pindai berhasil dan memberi peringatan untuk error</li>
+          <li>• Input otomatis fokus kembali untuk pindai berkelanjutan</li>
         </ul>
       </div>
     </div>

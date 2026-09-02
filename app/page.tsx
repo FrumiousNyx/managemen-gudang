@@ -69,8 +69,8 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Dashboard</h1>
-        <p className="mt-2 text-slate-500 dark:text-zinc-400">Monitor real-time inventory levels</p>
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Dasbor Stok</h1>
+        <p className="mt-2 text-slate-500 dark:text-zinc-400">Pantau level stok secara real-time</p>
       </div>
 
       {/* Metric Cards */}
@@ -78,7 +78,7 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Total SKU Types</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Total Jenis SKU</p>
               <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{totalSKUs}</p>
             </div>
             <div className="h-12 w-12 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center">
@@ -90,7 +90,7 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Total Units in Stock</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Total Unit dalam Stok</p>
               <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{totalStock}</p>
             </div>
             <div className="h-12 w-12 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center">
@@ -102,7 +102,7 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Low Stock Warning</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Peringatan Stok Rendah</p>
               <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{lowStockCount}</p>
             </div>
             <div className="h-12 w-12 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
@@ -118,7 +118,7 @@ export default function Dashboard() {
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by Name, SKU, Color, or Size..."
+            placeholder="Cari berdasarkan Nama, SKU, Warna, atau Ukuran..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
@@ -145,7 +145,7 @@ export default function Dashboard() {
                   Ukuran
                 </th>
                 <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-                  Sisa Stok Rak
+                  Sisa Stok
                 </th>
                 <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                   Status
@@ -183,7 +183,7 @@ export default function Dashboard() {
               {filteredProducts.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center text-slate-500 dark:text-zinc-400">
-                    No products found matching your search.
+                    Tidak ada produk yang cocok dengan pencarian Anda.
                   </td>
                 </tr>
               )}

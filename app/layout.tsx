@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Inventory Management System",
-  description: "Production-ready inventory management for clothing brands",
+  title: "Sistem Manajemen Inventaris",
+  description: "Sistem manajemen inventaris siap pakai untuk merek pakaian",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -8,10 +8,10 @@ export function Navigation() {
   const pathname = usePathname()
   
   const navItems = [
-    { href: "/", label: "Dashboard", icon: BarChart3 },
-    { href: "/qc-inbound", label: "QC Inbound", icon: ShoppingCart },
-    { href: "/packing-outbound", label: "Packing", icon: Scan },
-    { href: "/products", label: "Products", icon: Package },
+    { href: "/", label: "Dasbor Stok", icon: BarChart3 },
+    { href: "/qc-inbound", label: "Input QC", icon: ShoppingCart },
+    { href: "/packing-outbound", label: "Pengemasan", icon: Scan },
+    { href: "/products", label: "Produk", icon: Package },
   ]
 
   return (
@@ -20,7 +20,7 @@ export function Navigation() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Package className="h-7 w-7 text-slate-900 dark:text-zinc-100" />
-            <span className="ml-2 text-lg font-semibold text-slate-900 dark:text-zinc-100">Inventory</span>
+            <span className="ml-2 text-lg font-semibold text-slate-900 dark:text-zinc-100">Sistem Inventaris</span>
           </div>
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-1">

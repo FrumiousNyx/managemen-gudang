@@ -20,7 +20,7 @@ export default function QCInbound() {
   const fetchProducts = async () => {
     if (!supabase) {
       console.error('Supabase client not initialized')
-      showToast('error', 'Database connection not configured')
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
       return
     }
 
@@ -34,7 +34,7 @@ export default function QCInbound() {
       setProducts(data || [])
     } catch (error) {
       console.error('Error fetching products:', error)
-      showToast('error', 'Failed to load products')
+      showToast('error', 'Gagal memuat produk')
     }
   }
 
@@ -50,18 +50,18 @@ export default function QCInbound() {
     e.preventDefault()
     
     if (!supabase) {
-      showToast('error', 'Database connection not configured')
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
       return
     }
 
     if (!selectedProduct) {
-      showToast('error', 'Please select a product')
+      showToast('error', 'Silakan pilih produk')
       return
     }
 
     const qty = parseInt(quantity)
     if (isNaN(qty) || qty <= 0) {
-      showToast('error', 'Please enter a valid quantity')
+      showToast('error', 'Silakan masukkan jumlah yang valid')
       return
     }
 
@@ -88,7 +88,7 @@ export default function QCInbound() {
 
       if (logError) throw logError
 
-      showToast('success', `Successfully added ${qty} units to ${selectedProduct.name}`)
+      showToast('success', `Berhasil menambahkan ${qty} unit ke ${selectedProduct.name}`)
       
       // Reset form
       setSelectedProduct(null)
@@ -99,7 +99,7 @@ export default function QCInbound() {
       await fetchProducts()
     } catch (error) {
       console.error('Error adding stock:', error)
-      showToast('error', 'Failed to add stock')
+      showToast('error', 'Gagal menambah stok')
     } finally {
       setLoading(false)
     }
@@ -108,8 +108,8 @@ export default function QCInbound() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">QC Inbound</h1>
-        <p className="mt-2 text-slate-500 dark:text-zinc-400">Add products that passed quality control to warehouse stock</p>
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Input QC (Masuk)</h1>
+        <p className="mt-2 text-slate-500 dark:text-zinc-400">Tambah produk yang lulus quality control ke stok gudang</p>
       </div>
 
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-8">
@@ -117,13 +117,13 @@ export default function QCInbound() {
           {/* Product Selection */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-3">
-              Select Product SKU
+              Pilih Produk SKU
             </label>
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search by Name, SKU, Color, or Size..."
+                placeholder="Cari berdasarkan Nama, SKU, Warna, atau Ukuran..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-4 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
@@ -155,10 +155,10 @@ export default function QCInbound() {
           {/* Selected Product Display */}
           {selectedProduct && (
             <div className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
-              <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-4">Selected Product</h3>
+              <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-4">Produk Terpilih</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-slate-500 dark:text-zinc-400">Name:</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Nama:</span>
                   <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{selectedProduct.name}</span>
                 </div>
                 <div>
@@ -166,15 +166,15 @@ export default function QCInbound() {
                   <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{selectedProduct.sku}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 dark:text-zinc-400">Color:</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Warna:</span>
                   <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{selectedProduct.color}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 dark:text-zinc-400">Size:</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Ukuran:</span>
                   <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{selectedProduct.size}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 dark:text-zinc-400">Current Stock:</span>
+                  <span className="text-slate-500 dark:text-zinc-400">Stok Saat Ini:</span>
                   <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{selectedProduct.stock}</span>
                 </div>
               </div>
@@ -184,14 +184,14 @@ export default function QCInbound() {
           {/* Quantity Input */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-3">
-              Quantity (Actual QC Pass Count)
+              Jumlah (Jumlah QC yang Lulus)
             </label>
             <input
               type="number"
               min="1"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              placeholder="Enter quantity..."
+              placeholder="Masukkan jumlah..."
               className="w-full px-4 py-4 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg"
               disabled={!selectedProduct}
             />
@@ -206,7 +206,7 @@ export default function QCInbound() {
             {loading ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-slate-200 dark:border-zinc-700 border-t-slate-900 dark:border-t-zinc-100 mr-2"></div>
-                Processing...
+                Memproses...
               </>
             ) : (
               <>
@@ -220,12 +220,12 @@ export default function QCInbound() {
 
       {/* Instructions */}
       <div className="mt-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instructions</h3>
+        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
-          <li>• Search and select the product SKU from the dropdown</li>
-          <li>• Enter the actual count of items that passed QC</li>
-          <li>• Click "Tambah Stok Gudang" to add stock to the warehouse</li>
-          <li>• The transaction will be logged in the inventory audit trail</li>
+          <li>• Cari dan pilih produk SKU dari dropdown</li>
+          <li>• Masukkan jumlah barang yang lulus QC</li>
+          <li>• Klik "Tambah Stok Gudang" untuk menambah stok ke gudang</li>
+          <li>• Transaksi akan dicatat dalam audit trail inventaris</li>
         </ul>
       </div>
     </div>

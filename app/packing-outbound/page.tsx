@@ -22,14 +22,13 @@ export default function PackingOutbound() {
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [isCameraActive, setIsCameraActive] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [lastScannedProduct, setLastScannedProduct] = useState<Product | null>(null)
   const [lastScannedQty, setLastScannedQty] = useState(0)
-  const [wasCameraActive, setWasCameraActive] = useState(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
+  const isProcessing = useRef(false)
   const { showToast } = useToast()
 
   // Camera handling
@@ -127,7 +126,7 @@ export default function PackingOutbound() {
 
   const handleCameraScan = async (decodedText: string) => {
     // Prevent multiple scans while processing
-    if (isProcessing) {
+    if (isProcessing.current) {
       return
     }
 
@@ -141,7 +140,12 @@ export default function PackingOutbound() {
       return
     }
     
-    setIsProcessing(true)
+    // Pause scanner immediately
+    if (scannerRef.current) {
+      scannerRef.current.pause(true)
+    }
+    
+    isProcessing.current = true
     
     try {
       // Use atomic RPC function for safe stock deduction
@@ -173,7 +177,11 @@ export default function PackingOutbound() {
           setQuantity('1')
         }
         
-        setIsProcessing(false)
+        // Resume scanner on error
+        if (scannerRef.current) {
+          scannerRef.current.resume()
+        }
+        isProcessing.current = false
         return
       }
 
@@ -187,18 +195,17 @@ export default function PackingOutbound() {
       if (productError || !product) {
         setErrorMessage('Error mengambil detail produk')
         playErrorSound()
-        setIsProcessing(false)
+        
+        // Resume scanner on error
+        if (scannerRef.current) {
+          scannerRef.current.resume()
+        }
+        isProcessing.current = false
         return
       }
 
       // Success
       playSuccessSound()
-      
-      // Stop camera if active to prevent double scans
-      if (isCameraActive) {
-        setWasCameraActive(true)
-        setIsCameraActive(false)
-      }
       
       setLastScannedProduct({ ...product, stock: rpcResult.remaining_stock || product.stock - qty })
       setLastScannedQty(qty)
@@ -221,6 +228,14 @@ export default function PackingOutbound() {
       if (scanMode === 'bulk') {
         setQuantity('1')
       }
+      
+      // Auto-resume scanner after 2 seconds
+      setTimeout(() => {
+        if (scannerRef.current) {
+          scannerRef.current.resume()
+        }
+        isProcessing.current = false
+      }, 2000)
     } catch (error) {
       console.error('Error processing scan:', error)
       setErrorMessage('Error memproses pindai')
@@ -231,8 +246,12 @@ export default function PackingOutbound() {
       if (scanMode === 'bulk') {
         setQuantity('1')
       }
-    } finally {
-      setIsProcessing(false)
+      
+      // Resume scanner on error
+      if (scannerRef.current) {
+        scannerRef.current.resume()
+      }
+      isProcessing.current = false
     }
   }
 
@@ -241,7 +260,7 @@ export default function PackingOutbound() {
       e.preventDefault()
       
       // Prevent multiple scans while processing
-      if (isProcessing) {
+      if (isProcessing.current) {
         return
       }
       
@@ -257,7 +276,7 @@ export default function PackingOutbound() {
         return
       }
       
-      setIsProcessing(true)
+      isProcessing.current = true
       
       try {
         // Use atomic RPC function for safe stock deduction
@@ -291,7 +310,7 @@ export default function PackingOutbound() {
           }
           
           if (inputRef.current) inputRef.current.focus()
-          setIsProcessing(false)
+          isProcessing.current = false
           return
         }
 
@@ -307,18 +326,12 @@ export default function PackingOutbound() {
           playErrorSound()
           setBarcodeInput('')
           if (inputRef.current) inputRef.current.focus()
-          setIsProcessing(false)
+          isProcessing.current = false
           return
         }
 
         // Success
         playSuccessSound()
-        
-        // Stop camera if active to prevent double scans
-        if (isCameraActive) {
-          setWasCameraActive(true)
-          setIsCameraActive(false)
-        }
         
         setLastScannedProduct({ ...product, stock: rpcResult.remaining_stock || product.stock - qty })
         setLastScannedQty(qty)
@@ -356,7 +369,7 @@ export default function PackingOutbound() {
         
         if (inputRef.current) inputRef.current.focus()
       } finally {
-        setIsProcessing(false)
+        isProcessing.current = false
       }
     }
   }
@@ -375,13 +388,14 @@ export default function PackingOutbound() {
     setLastScannedQty(0)
     setBarcodeInput('')
     
-    // Restart camera if it was active before
-    if (wasCameraActive) {
-      setIsCameraActive(true)
-      setWasCameraActive(false)
-    } else {
-      if (inputRef.current) inputRef.current.focus()
+    // Resume scanner if camera is active
+    if (isCameraActive && scannerRef.current) {
+      scannerRef.current.resume()
     }
+    
+    isProcessing.current = false
+    
+    if (inputRef.current) inputRef.current.focus()
   }
 
   return (

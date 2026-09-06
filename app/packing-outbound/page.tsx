@@ -23,6 +23,7 @@ export default function PackingOutbound() {
   const [successMessage, setSuccessMessage] = useState('')
   const [isCameraActive, setIsCameraActive] = useState(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
 
@@ -60,6 +61,13 @@ export default function PackingOutbound() {
       if (scannerRef.current) {
         scannerRef.current.clear()
       }
+    }
+  }, [isCameraActive])
+
+  // Auto-focus input when camera is off
+  useEffect(() => {
+    if (!isCameraActive && inputRef.current) {
+      inputRef.current.focus()
     }
   }, [isCameraActive])
 

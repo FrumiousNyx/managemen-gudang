@@ -3,11 +3,14 @@
 import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
-import { Package, Plus, Edit, Trash2, X } from 'lucide-react'
+import { Package, Plus, Edit, Trash2, X, Printer } from 'lucide-react'
+import QRCode from 'qrcode.react'
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isLabelModalOpen, setIsLabelModalOpen] = useState(false)
+  const [selectedProductForLabel, setSelectedProductForLabel] = useState<Product | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     color: '',
@@ -197,12 +200,25 @@ export default function Products() {
                       </span>
                     </td>
                     <td className="px-4 py-3.5 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedProductForLabel(product)
+                            setIsLabelModalOpen(true)
+                          }}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                          title="Cetak Label"
+                        >
+                          <Printer className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product.id)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
+                          title="Hapus"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -316,14 +332,76 @@ export default function Products() {
 
       {/* Instructions */}
       <div className="mt-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instructions</h3>
+        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
-          <li>• Click "Add New SKU" to create a new product with its barcode identifier</li>
-          <li>• The SKU code will be used for barcode scanning in the packing process</li>
-          <li>• New products start with 0 stock and need to be added via QC Inbound</li>
-          <li>• Delete products carefully - this will remove all associated inventory logs</li>
+          <li>• Klik "Tambah SKU Baru" untuk membuat produk baru dengan pengenal barcode</li>
+          <li>• Kode SKU akan digunakan untuk pemindaian barcode dalam proses pengemasan</li>
+          <li>• Produk baru mulai dengan stok 0 dan perlu ditambahkan melalui Input QC</li>
+          <li>• Klik ikon printer untuk mencetak label thermal 50x30mm</li>
+          <li>• Hapus produk dengan hati-hati - ini akan menghapus semua log inventaris terkait</li>
         </ul>
       </div>
+
+      {/* Label Printing Modal */}
+      {isLabelModalOpen && selectedProductForLabel && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-zinc-800">
+            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Cetak Label Thermal</h2>
+              <button
+                onClick={() => setIsLabelModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {/* Label Preview - 50x30mm */}
+              <div className="bg-white border-2 border-slate-300 rounded-lg p-3 mx-auto" style={{ width: '300px', height: '180px' }}>
+                <div className="text-center">
+                  <div className="text-xs font-bold text-slate-900 mb-1">TENZE INVENTORY</div>
+                  <div className="flex justify-center mb-2">
+                    <QRCode 
+                      value={selectedProductForLabel.sku} 
+                      size={60}
+                      level="L"
+                      includeMargin={false}
+                    />
+                  </div>
+                  <div className="text-xs font-semibold text-slate-900 mb-0.5">{selectedProductForLabel.name}</div>
+                  <div className="text-xs text-slate-600 mb-0.5">{selectedProductForLabel.color} / {selectedProductForLabel.size}</div>
+                  <div className="text-xs font-mono text-slate-800">{selectedProductForLabel.sku}</div>
+                  <div className="text-xs font-bold text-emerald-600 mt-1">QC PASSED</div>
+                </div>
+              </div>
+              
+              <div className="mt-4 text-center text-sm text-slate-500 dark:text-zinc-400">
+                <p>Preview label ukuran 50x30mm</p>
+                <p className="text-xs mt-1">Klik cetak untuk mengirim ke printer thermal</p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setIsLabelModalOpen(false)}
+                  className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => {
+                    window.print()
+                    setIsLabelModalOpen(false)
+                  }}
+                  className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                >
+                  Cetak
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

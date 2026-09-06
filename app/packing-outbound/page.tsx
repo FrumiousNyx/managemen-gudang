@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { Html5QrcodeScanner } from 'html5-qrcode'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
-import { Scan, Package, AlertCircle, CheckCircle, XCircle, Layers, Zap } from 'lucide-react'
+import { Scan, Package, AlertCircle, CheckCircle, XCircle, Layers, Zap, Camera, CameraOff } from 'lucide-react'
 
 type ScanMode = 'single' | 'bulk'
 
@@ -20,27 +21,47 @@ export default function PackingOutbound() {
   const [recentlyScanned, setRecentlyScanned] = useState<ScannedItem[]>([])
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [isCameraActive, setIsCameraActive] = useState(false)
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
 
-  // Auto-focus input on mount and when clicked outside
+  // Camera handling
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus()
-    }
+    if (isCameraActive) {
+      const scanner = new Html5QrcodeScanner(
+        "reader",
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        },
+        false
+      )
 
-    const handleFocus = (e: MouseEvent) => {
-      // Don't refocus if clicking on the quantity input in bulk mode
-      if (quantityRef.current && e.target === quantityRef.current) return
-      if (inputRef.current) {
-        inputRef.current.focus()
+      scanner.render(
+        (decodedText: string) => {
+          handleCameraScan(decodedText)
+        },
+        (errorMessage: string) => {
+          // Scanning in progress...
+        }
+      )
+
+      scannerRef.current = scanner
+    } else {
+      if (scannerRef.current) {
+        scannerRef.current.clear()
+        scannerRef.current = null
       }
     }
 
-    document.addEventListener('click', handleFocus)
-    return () => document.removeEventListener('click', handleFocus)
-  }, [])
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.clear()
+      }
+    }
+  }, [isCameraActive])
 
   // Reset quantity to 1 when switching to single mode
   useEffect(() => {
@@ -88,6 +109,104 @@ export default function PackingOutbound() {
       oscillator.stop(audioContext.currentTime + 0.2)
     } catch (error) {
       console.error('Error playing error sound:', error)
+    }
+  }
+
+  const handleCameraScan = async (decodedText: string) => {
+    const sku = decodedText.trim()
+    const qty = parseInt(quantity) || 1
+    
+    if (!supabase) {
+      setErrorMessage('Koneksi database tidak dikonfigurasi')
+      playErrorSound()
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
+      return
+    }
+    
+    try {
+      // Use atomic RPC function for safe stock deduction
+      const { data: rpcResult, error: rpcError } = await supabase
+        .rpc('deduct_product_stock', { 
+          p_sku: sku, 
+          p_qty: qty 
+        })
+
+      if (rpcError) throw rpcError
+
+      if (!rpcResult?.success) {
+        const errorMsg = rpcResult?.message || 'Error memproses pindai'
+        const currentStock = rpcResult?.current_stock || 0
+        
+        if (errorMsg.includes('tidak ditemukan')) {
+          setErrorMessage(`SKU Tidak Ditemukan: ${sku}`)
+        } else if (errorMsg.includes('tidak mencukupi')) {
+          setErrorMessage(`Stok Tidak Cukup! Sisa Stok: ${currentStock}`)
+        } else {
+          setErrorMessage(errorMsg)
+        }
+        
+        playErrorSound()
+        showToast('error', errorMsg)
+        
+        // Reset quantity to 1 in bulk mode after error
+        if (scanMode === 'bulk') {
+          setQuantity('1')
+        }
+        
+        return
+      }
+
+      // Get product details for display
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('sku', sku)
+        .single()
+
+      if (productError || !product) {
+        setErrorMessage('Error mengambil detail produk')
+        playErrorSound()
+        return
+      }
+
+      // Success
+      playSuccessSound()
+      const successText = qty === 1 
+        ? `Berhasil: ${product.name} - ${product.color} (${product.size})`
+        : `Berhasil: ${qty}x ${product.name} - ${product.color} (${product.size})`
+      
+      setSuccessMessage(successText)
+      setErrorMessage('')
+      
+      // Add to recently scanned
+      setRecentlyScanned((prev) => [
+        { 
+          product: { ...product, stock: rpcResult.remaining_stock || product.stock - qty }, 
+          quantity: qty,
+          timestamp: new Date() 
+        },
+        ...prev.slice(0, 9) // Keep only last 10 items
+      ])
+
+      showToast('success', `Pindai: ${qty}x ${product.name}`)
+      
+      // Reset quantity to 1 in bulk mode after successful scan
+      if (scanMode === 'bulk') {
+        setQuantity('1')
+      }
+      
+      // Clear success message after 2 seconds
+      setTimeout(() => setSuccessMessage(''), 2000)
+    } catch (error) {
+      console.error('Error processing scan:', error)
+      setErrorMessage('Error memproses pindai')
+      playErrorSound()
+      showToast('error', 'Error memproses pindai')
+      
+      // Reset quantity to 1 in bulk mode after error
+      if (scanMode === 'bulk') {
+        setQuantity('1')
+      }
     }
   }
 
@@ -250,45 +369,79 @@ export default function PackingOutbound() {
           </div>
         </div>
 
-        {/* Barcode Scanner Input */}
+        {/* Camera/Barcode Scanner Input */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-3">
-            Input Pemindai Barcode
-          </label>
-          <div className="flex gap-3">
-            <div className="relative flex-1">
-              <Scan className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
-                onKeyDown={handleBarcodeScan}
-                placeholder="Pindai barcode di sini..."
-                className="w-full pl-12 pr-4 py-4 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg"
-                autoFocus
-              />
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300">
+              Metode Pindai
+            </label>
+            <button
+              onClick={() => setIsCameraActive(!isCameraActive)}
+              className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                isCameraActive
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              {isCameraActive ? (
+                <>
+                  <CameraOff className="h-4 w-4 mr-1" />
+                  Matikan Kamera
+                </>
+              ) : (
+                <>
+                  <Camera className="h-4 w-4 mr-1" />
+                  Aktifkan Kamera
+                </>
+              )}
+            </button>
+          </div>
+
+          {isCameraActive ? (
+            <div className="bg-black rounded-xl overflow-hidden">
+              <div id="reader" className="w-full"></div>
             </div>
-            
-            {scanMode === 'bulk' && (
-              <div className="w-28">
+          ) : (
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Scan className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <input
-                  ref={quantityRef}
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  placeholder="Qty"
-                  className="w-full px-4 py-4 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg text-center font-semibold"
+                  ref={inputRef}
+                  type="text"
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  onKeyDown={handleBarcodeScan}
+                  placeholder="Pindai barcode di sini..."
+                  className="w-full pl-12 pr-4 py-4 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg"
+                  autoFocus
+                />
                 />
               </div>
-            )}
-          </div>
+              
+              {scanMode === 'bulk' && (
+                <div className="w-28">
+                  <input
+                    ref={quantityRef}
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    placeholder="Qty"
+                    className="w-full px-4 py-4 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg text-center font-semibold"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
           <p className="mt-3 text-sm text-slate-500 dark:text-zinc-400">
             <Scan className="inline h-4 w-4 mr-1" />
+            {isCameraActive 
+              ? 'Mode Kamera: Arahkan kamera ke QR Code pada polybag untuk pemindaian otomatis.'
+              : 'Mode Manual: Gunakan pemindai barcode USB/Bluetooth atau ketik SKU manual.'}
             {scanMode === 'single' 
-              ? 'Mode Satu Pindai: Setiap pindai mengurangi 1 unit dari stok. Cocok untuk pengemasan item individu.'
-              : 'Mode Banyak Pindai: Masukkan jumlah, lalu pindai barcode sekali untuk mengurangi banyak unit. Reset ke 1 setelah setiap pindai.'}
+              ? ' Setiap pindai mengurangi 1 unit dari stok.'
+              : ' Masukkan jumlah, lalu pindai untuk mengurangi banyak unit.'}
           </p>
         </div>
 
@@ -356,14 +509,14 @@ export default function PackingOutbound() {
       <div className="mt-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
-          <li>• Pastikan pemindai barcode Anda terhubung dan berfungsi</li>
-          <li>• <strong>Mode Satu Pindai:</strong> Pindai setiap barcode secara individu untuk pengurangan 1 unit</li>
-          <li>• <strong>Mode Banyak Pindai:</strong> Masukkan jumlah terlebih dahulu, lalu pindai barcode sekali untuk banyak unit</li>
+          <li>• <strong>Mode Kamera:</strong> Klik "Aktifkan Kamera" untuk pemindaian QR Code otomatis dengan kamera HP</li>
+          <li>• <strong>Mode Manual:</strong> Gunakan pemindai barcode USB/Bluetooth atau ketik SKU manual</li>
+          <li>• <strong>Mode Satu Pindai:</strong> Setiap pindai mengurangi 1 unit dari stok</li>
+          <li>• <strong>Mode Banyak Pindai:</strong> Masukkan jumlah, lalu pindai untuk mengurangi banyak unit</li>
           <li>• Jumlah otomatis reset ke 1 setelah setiap pindai banyak untuk mencegah kesalahan</li>
           <li>• Validasi stok mencegah overselling dengan pesan error yang jelas</li>
           <li>• Operasi database atomik mencegah race condition di lingkungan multi-user</li>
           <li>• Feedback audio mengkonfirmasi pindai berhasil dan memberi peringatan untuk error</li>
-          <li>• Input otomatis fokus kembali untuk pindai berkelanjutan</li>
         </ul>
       </div>
     </div>

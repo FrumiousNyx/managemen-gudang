@@ -415,7 +415,6 @@ export default function PackingOutbound() {
                   className="w-full pl-12 pr-4 py-4 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg"
                   autoFocus
                 />
-                />
               </div>
               
               {scanMode === 'bulk' && (

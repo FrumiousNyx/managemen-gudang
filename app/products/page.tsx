@@ -27,6 +27,18 @@ export default function Products() {
     fetchProducts()
   }, [])
 
+  const getStockThreshold = (productName: string): number => {
+    const name = productName.toLowerCase()
+    if (name.includes('lina')) return 30
+    if (name.includes('rocela') || name.includes('legging rok 3/4') || name.includes('lr3')) return 40
+    if (name.includes('asimetri')) return 60
+    return 20 // Default threshold for other products
+  }
+
+  const isLowStock = (product: Product): boolean => {
+    return product.stock < getStockThreshold(product.name)
+  }
+
   const fetchProducts = async () => {
     if (!supabase) {
       console.error('Supabase client not initialized')
@@ -181,22 +193,23 @@ export default function Products() {
     }
   }
 
-  const getStockStatus = (stock: number) => {
-    if (stock === 0) return { label: 'Habis', color: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400 border-red-200 dark:border-red-900' }
-    if (stock < 10) return { label: 'Menipis', color: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900' }
+  const getStockStatus = (product: Product) => {
+    const threshold = getStockThreshold(product.name)
+    if (product.stock === 0) return { label: 'Habis', color: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400 border-red-200 dark:border-red-900' }
+    if (product.stock < threshold) return { label: 'Menipis', color: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900' }
     return { label: 'Aman', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900' }
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Produk</h1>
-          <p className="mt-2 text-slate-500 dark:text-zinc-400">Kelola SKU produk dan informasi inventaris</p>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Produk</h1>
+          <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Kelola SKU produk dan informasi inventaris</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+          className="flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all w-full sm:w-auto"
         >
           <Plus className="h-5 w-5 mr-2" />
           Tambah SKU Baru
@@ -234,7 +247,7 @@ export default function Products() {
             </thead>
             <tbody className="bg-white dark:bg-zinc-900 divide-y divide-slate-200 dark:divide-zinc-800">
               {products.map((product) => {
-                const status = getStockStatus(product.stock)
+                const status = getStockStatus(product)
                 return (
                   <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-zinc-950 transition-colors">
                     <td className="px-4 py-3.5 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-zinc-100">
@@ -307,7 +320,7 @@ export default function Products() {
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
         {products.map((product) => {
-          const status = getStockStatus(product.stock)
+          const status = getStockStatus(product)
           return (
             <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
               <div className="flex justify-between items-start mb-3">

@@ -111,12 +111,12 @@ export default function QCInbound() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Barang Masuk</h1>
-        <p className="mt-2 text-slate-500 dark:text-zinc-400">Tambah produk yang lulus quality control ke stok gudang</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Barang Masuk</h1>
+        <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Tambah produk yang lulus quality control ke stok gudang</p>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4 sm:p-8">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Product Selection */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-3">
@@ -129,7 +129,7 @@ export default function QCInbound() {
                 placeholder="Cari berdasarkan Nama, SKU, Warna, atau Ukuran..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                className="w-full pl-12 pr-4 py-3 sm:py-4 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-sm sm:text-base"
               />
             </div>
             

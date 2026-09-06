@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
-import { Clock, ArrowDown, ArrowUp, Package, Filter } from 'lucide-react'
+import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 
 interface InventoryLog {
   id: string
@@ -25,12 +25,16 @@ type FilterType = 'all' | 'inbound' | 'outbound'
 export default function History() {
   const [logs, setLogs] = useState<InventoryLog[]>([])
   const [filter, setFilter] = useState<FilterType>('all')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const itemsPerPage = 20
   const { showToast } = useToast()
 
   useEffect(() => {
     fetchLogs()
-  }, [filter])
+  }, [filter, startDate, endDate])
 
   const fetchLogs = async () => {
     if (!supabase) {
@@ -39,6 +43,7 @@ export default function History() {
     }
 
     setLoading(true)
+    setCurrentPage(1) // Reset to page 1 when filters change
 
     try {
       let query = supabase
@@ -53,6 +58,17 @@ export default function History() {
         query = query.eq('type', 'INBOUND_QC')
       } else if (filter === 'outbound') {
         query = query.eq('type', 'OUTBOUND_PACKING')
+      }
+
+      if (startDate) {
+        query = query.gte('created_at', startDate)
+      }
+
+      if (endDate) {
+        // Add one day to include the end date
+        const endDateTime = new Date(endDate)
+        endDateTime.setDate(endDateTime.getDate() + 1)
+        query = query.lt('created_at', endDateTime.toISOString())
       }
 
       const { data, error } = await query
@@ -78,6 +94,34 @@ export default function History() {
       minute: '2-digit'
     })
   }
+
+  const formatShortDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+  }
+
+  const groupLogsByDate = (logs: InventoryLog[]) => {
+    const grouped: Record<string, InventoryLog[]> = {}
+    logs.forEach(log => {
+      const dateKey = new Date(log.created_at).toDateString()
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = []
+      }
+      grouped[dateKey].push(log)
+    })
+    return grouped
+  }
+
+  const totalPages = Math.ceil(logs.length / itemsPerPage)
+  const paginatedLogs = logs.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+  const groupedLogs = groupLogsByDate(paginatedLogs)
 
   const getLogTypeLabel = (type: string) => {
     switch (type) {
@@ -115,17 +159,19 @@ export default function History() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Riwayat Inventaris</h1>
-        <p className="mt-2 text-slate-500 dark:text-zinc-400">Lihat semua pergerakan stok barang masuk dan keluar</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Riwayat Inventaris</h1>
+        <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Lihat semua pergerakan stok barang masuk dan keluar</p>
       </div>
 
       {/* Filter */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-6">
-        <div className="flex items-center justify-between">
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
             <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Filter</h2>
           </div>
+          
+          {/* Type Filter */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setFilter('all')}
@@ -158,6 +204,46 @@ export default function History() {
               Barang Keluar
             </button>
           </div>
+
+          {/* Date Range Filter */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2 border-t border-slate-200 dark:border-zinc-800">
+            <Calendar className="h-5 w-5 text-slate-600 dark:text-zinc-400 mt-6 sm:mt-0" />
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
+                  Dari Tanggal
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
+                  Sampai Tanggal
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+            {(startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setStartDate('')
+                  setEndDate('')
+                }}
+                className="mt-6 sm:mt-0 px-3 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors whitespace-nowrap"
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -174,51 +260,94 @@ export default function History() {
             <p className="text-slate-600 dark:text-zinc-400">Belum ada riwayat inventaris</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-200 dark:divide-zinc-800">
-            {logs.map((log) => (
-              <div key={log.id} className="p-6 hover:bg-slate-50 dark:hover:bg-zinc-950 transition-colors">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getLogTypeColor(log.type)}`}>
-                        {getLogIcon(log.type)}
-                        <span className="ml-1">{getLogTypeLabel(log.type)}</span>
-                      </span>
-                      <span className="text-sm text-slate-500 dark:text-zinc-400">{formatDate(log.created_at)}</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                      <div>
-                        <span className="text-slate-500 dark:text-zinc-400">Nama:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.name || '-'}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 dark:text-zinc-400">SKU:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.sku || '-'}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 dark:text-zinc-400">Warna:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.color || '-'}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 dark:text-zinc-400">Ukuran:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.size || '-'}</span>
-                      </div>
-                    </div>
-                    <div className="mt-3 text-sm">
-                      <span className="text-slate-500 dark:text-zinc-400">Catatan:</span>
-                      <span className="ml-2 text-slate-900 dark:text-zinc-100">{log.notes}</span>
-                    </div>
+          <>
+            <div className="divide-y divide-slate-200 dark:divide-zinc-800">
+              {Object.entries(groupedLogs).map(([dateKey, dateLogs]) => (
+                <div key={dateKey}>
+                  {/* Date Header */}
+                  <div className="bg-slate-50 dark:bg-zinc-950 px-6 py-3 border-b border-slate-200 dark:border-zinc-800">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                      {formatShortDate(dateLogs[0].created_at)}
+                    </h3>
                   </div>
-                  <div className="flex-shrink-0 text-right">
-                    <div className={`text-2xl font-bold ${log.qty > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {log.qty > 0 ? '+' : ''}{log.qty}
+                  
+                  {/* Logs for this date */}
+                  {dateLogs.map((log) => (
+                    <div key={log.id} className="p-6 hover:bg-slate-50 dark:hover:bg-zinc-950 transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getLogTypeColor(log.type)}`}>
+                              {getLogIcon(log.type)}
+                              <span className="ml-1">{getLogTypeLabel(log.type)}</span>
+                            </span>
+                            <span className="text-sm text-slate-500 dark:text-zinc-400">{formatDate(log.created_at)}</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                            <div>
+                              <span className="text-slate-500 dark:text-zinc-400">Nama:</span>
+                              <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.name || '-'}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 dark:text-zinc-400">SKU:</span>
+                              <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.sku || '-'}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 dark:text-zinc-400">Warna:</span>
+                              <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.color || '-'}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 dark:text-zinc-400">Ukuran:</span>
+                              <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.size || '-'}</span>
+                            </div>
+                          </div>
+                          <div className="mt-3 text-sm">
+                            <span className="text-slate-500 dark:text-zinc-400">Catatan:</span>
+                            <span className="ml-2 text-slate-900 dark:text-zinc-100">{log.notes}</span>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          <div className={`text-2xl font-bold ${log.qty > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {log.qty > 0 ? '+' : ''}{log.qty}
+                          </div>
+                          <div className="text-sm text-slate-500 dark:text-zinc-400">unit</div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-slate-500 dark:text-zinc-400">unit</div>
-                  </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="px-4 sm:px-6 py-4 border-t border-slate-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-sm text-slate-600 dark:text-zinc-400 text-center sm:text-left">
+                  Halaman {currentPage} dari {totalPages} ({logs.length} total)
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    <span className="hidden sm:inline">Sebelumnya</span>
+                    <span className="sm:hidden">Prev</span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
+                  >
+                    <span className="hidden sm:inline">Selanjutnya</span>
+                    <span className="sm:hidden">Next</span>
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

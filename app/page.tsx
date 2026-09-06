@@ -69,12 +69,12 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Dasbor Stok</h1>
-        <p className="mt-2 text-slate-500 dark:text-zinc-400">Pantau level stok secara real-time</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Dasbor Stok</h1>
+        <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Pantau level stok secara real-time</p>
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>

@@ -26,6 +26,7 @@ export default function PackingOutbound() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [lastScannedProduct, setLastScannedProduct] = useState<Product | null>(null)
   const [lastScannedQty, setLastScannedQty] = useState(0)
+  const [wasCameraActive, setWasCameraActive] = useState(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
@@ -193,6 +194,12 @@ export default function PackingOutbound() {
       // Success
       playSuccessSound()
       
+      // Stop camera if active to prevent double scans
+      if (isCameraActive) {
+        setWasCameraActive(true)
+        setIsCameraActive(false)
+      }
+      
       setLastScannedProduct({ ...product, stock: rpcResult.remaining_stock || product.stock - qty })
       setLastScannedQty(qty)
       setShowSuccessModal(true)
@@ -307,6 +314,12 @@ export default function PackingOutbound() {
         // Success
         playSuccessSound()
         
+        // Stop camera if active to prevent double scans
+        if (isCameraActive) {
+          setWasCameraActive(true)
+          setIsCameraActive(false)
+        }
+        
         setLastScannedProduct({ ...product, stock: rpcResult.remaining_stock || product.stock - qty })
         setLastScannedQty(qty)
         setShowSuccessModal(true)
@@ -361,7 +374,14 @@ export default function PackingOutbound() {
     setLastScannedProduct(null)
     setLastScannedQty(0)
     setBarcodeInput('')
-    if (inputRef.current) inputRef.current.focus()
+    
+    // Restart camera if it was active before
+    if (wasCameraActive) {
+      setIsCameraActive(true)
+      setWasCameraActive(false)
+    } else {
+      if (inputRef.current) inputRef.current.focus()
+    }
   }
 
   return (

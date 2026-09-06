@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
-import { Package, Plus, Edit, Trash2, X, Printer, Save } from 'lucide-react'
+import { Package, Plus, Edit, Trash2, X, Printer, Save, Download } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
 
 export default function Products() {
@@ -112,10 +112,7 @@ export default function Products() {
     }
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id)
+      const { error } = await supabase.from('products').delete().eq('id', id)
 
       if (error) throw error
 
@@ -124,6 +121,31 @@ export default function Products() {
     } catch (error) {
       console.error('Error deleting product:', error)
       showToast('error', 'Gagal menghapus produk')
+    }
+  }
+
+  const handlePrintLabel = async (product: Product) => {
+    if (!supabase) {
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
+      return
+    }
+
+    try {
+      // Log print to print_history
+      const { error } = await supabase
+        .from('print_history')
+        .insert({
+          product_id: product.id,
+          quantity: 1
+        })
+
+      if (error) throw error
+
+      setSelectedProductForLabel(product)
+      setIsLabelModalOpen(true)
+    } catch (error) {
+      console.error('Error logging print:', error)
+      showToast('error', 'Gagal mencatat riwayat cetak')
     }
   }
 
@@ -182,9 +204,38 @@ export default function Products() {
   }
 
   const getStockStatus = (stock: number) => {
-    if (stock === 0) return { label: 'Habis', color: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400 border-red-200 dark:border-red-900' }
-    if (stock < 10) return { label: 'Menipis', color: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900' }
-    return { label: 'Aman', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900' }
+    if (stock === 0) {
+      return { label: 'Habis', color: 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' }
+    } else if (stock < 10) {
+      return { label: 'Sedikit', color: 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' }
+    }
+    return { label: 'Aman', color: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' }
+  }
+
+  const exportToCSV = () => {
+    const headers = ['SKU', 'Nama Produk', 'Warna', 'Ukuran', 'Stok']
+    const rows = products.map(product => [
+      product.sku,
+      product.name,
+      product.color,
+      product.size,
+      product.stock
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `products-${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   return (
@@ -194,13 +245,22 @@ export default function Products() {
           <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Produk</h1>
           <p className="mt-2 text-slate-500 dark:text-zinc-400">Kelola SKU produk dan informasi inventaris</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Tambah SKU Baru
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={exportToCSV}
+            className="flex items-center px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors font-medium"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Export CSV
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors font-medium"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Tambah SKU Baru
+          </button>
+        </div>
       </div>
 
       {/* Products Table - Desktop */}
@@ -271,10 +331,7 @@ export default function Products() {
                           <Edit className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => {
-                            setSelectedProductForLabel(product)
-                            setIsLabelModalOpen(true)
-                          }}
+                          onClick={() => handlePrintLabel(product)}
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
                           title="Cetak Label"
                         >

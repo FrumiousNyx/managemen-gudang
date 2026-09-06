@@ -22,12 +22,22 @@ CREATE TABLE IF NOT EXISTS inventory_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create print_history table to track label prints
+CREATE TABLE IF NOT EXISTS print_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    quantity INTEGER DEFAULT 1 CHECK (quantity > 0),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
 CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_product_id ON inventory_logs(product_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_type ON inventory_logs(type);
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_created_at ON inventory_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_print_history_product_id ON print_history(product_id);
+CREATE INDEX IF NOT EXISTS idx_print_history_created_at ON print_history(created_at);
 
 -- Create a function to update product stock and log the transaction
 CREATE OR REPLACE FUNCTION update_stock_with_log(

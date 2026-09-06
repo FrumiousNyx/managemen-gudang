@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Package, Scan, ShoppingCart, BarChart3, Menu, X } from "lucide-react"
+import { Package, Scan, ShoppingCart, BarChart3, Menu, X, History, TrendingUp, Printer } from "lucide-react"
 
 export function Navigation() {
   const pathname = usePathname()
@@ -14,6 +14,9 @@ export function Navigation() {
     { href: "/qc-inbound", label: "Input QC", icon: ShoppingCart },
     { href: "/packing-outbound", label: "Pengemasan", icon: Scan },
     { href: "/products", label: "Produk", icon: Package },
+    { href: "/stock-history", label: "Riwayat Stok", icon: History },
+    { href: "/print-history", label: "Riwayat Cetak", icon: Printer },
+    { href: "/analytics", label: "Analitik", icon: TrendingUp },
   ]
 
   return (

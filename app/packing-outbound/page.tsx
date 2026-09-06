@@ -22,6 +22,7 @@ export default function PackingOutbound() {
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [isCameraActive, setIsCameraActive] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
@@ -121,6 +122,11 @@ export default function PackingOutbound() {
   }
 
   const handleCameraScan = async (decodedText: string) => {
+    // Prevent multiple scans while processing
+    if (isProcessing) {
+      return
+    }
+
     const sku = decodedText.trim()
     const qty = parseInt(quantity) || 1
     
@@ -130,6 +136,8 @@ export default function PackingOutbound() {
       showToast('error', 'Koneksi database tidak dikonfigurasi')
       return
     }
+    
+    setIsProcessing(true)
     
     try {
       // Use atomic RPC function for safe stock deduction
@@ -161,6 +169,7 @@ export default function PackingOutbound() {
           setQuantity('1')
         }
         
+        setIsProcessing(false)
         return
       }
 
@@ -174,6 +183,7 @@ export default function PackingOutbound() {
       if (productError || !product) {
         setErrorMessage('Error mengambil detail produk')
         playErrorSound()
+        setIsProcessing(false)
         return
       }
 
@@ -215,12 +225,20 @@ export default function PackingOutbound() {
       if (scanMode === 'bulk') {
         setQuantity('1')
       }
+    } finally {
+      setIsProcessing(false)
     }
   }
 
   const handleBarcodeScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && barcodeInput.trim()) {
       e.preventDefault()
+      
+      // Prevent multiple scans while processing
+      if (isProcessing) {
+        return
+      }
+      
       const sku = barcodeInput.trim()
       const qty = parseInt(quantity) || 1
       
@@ -232,6 +250,8 @@ export default function PackingOutbound() {
         if (inputRef.current) inputRef.current.focus()
         return
       }
+      
+      setIsProcessing(true)
       
       try {
         // Use atomic RPC function for safe stock deduction
@@ -265,6 +285,7 @@ export default function PackingOutbound() {
           }
           
           if (inputRef.current) inputRef.current.focus()
+          setIsProcessing(false)
           return
         }
 
@@ -280,6 +301,7 @@ export default function PackingOutbound() {
           playErrorSound()
           setBarcodeInput('')
           if (inputRef.current) inputRef.current.focus()
+          setIsProcessing(false)
           return
         }
 
@@ -328,6 +350,8 @@ export default function PackingOutbound() {
         }
         
         if (inputRef.current) inputRef.current.focus()
+      } finally {
+        setIsProcessing(false)
       }
     }
   }

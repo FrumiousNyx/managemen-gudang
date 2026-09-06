@@ -464,8 +464,26 @@ export default function PackingOutbound() {
           </div>
 
           {isCameraActive ? (
-            <div className="bg-black rounded-xl overflow-hidden">
-              <div id="reader" className="w-full"></div>
+            <div className="space-y-3">
+              <div className="bg-black rounded-xl overflow-hidden">
+                <div id="reader" className="w-full"></div>
+              </div>
+              {scanMode === 'bulk' && (
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-slate-700 dark:text-zinc-300 whitespace-nowrap">
+                    Jumlah:
+                  </label>
+                  <input
+                    ref={quantityRef}
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    placeholder="Masukkan jumlah"
+                    className="flex-1 px-4 py-3 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg font-semibold text-center"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row gap-3">

@@ -115,7 +115,7 @@ INSERT INTO products (sku, name, color, size, stock) VALUES
     ('CELESTIA-RED-S', 'Celestia Blouse', 'Red', 'S', 8)
 ON CONFLICT (sku) DO NOTHING;
 
--- Insert sample inventory logs
+-- Insert sample inventory logs (only for products with stock > 0)
 INSERT INTO inventory_logs (product_id, type, qty, notes)
 SELECT 
     id, 
@@ -123,4 +123,5 @@ SELECT
     stock, 
     'Initial stock from QC'
 FROM products
+WHERE stock > 0
 ON CONFLICT DO NOTHING;

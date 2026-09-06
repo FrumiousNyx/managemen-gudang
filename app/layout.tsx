@@ -13,6 +13,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Sistem Manajemen Inventaris",
   description: "Sistem manajemen inventaris siap pakai untuk merek pakaian",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=5",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

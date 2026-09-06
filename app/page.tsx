@@ -126,8 +126,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Data Table */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+      {/* Data Table - Desktop */}
+      <div className="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 dark:divide-zinc-800">
             <thead className="bg-slate-50 dark:bg-zinc-950">
@@ -190,6 +190,45 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {filteredProducts.map((product) => {
+          const status = getStockStatus(product.stock)
+          return (
+            <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">{product.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">{product.sku}</p>
+                </div>
+                <span className={`px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full border ${status.color}`}>
+                  {status.label}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">Warna</p>
+                  <p className="font-medium text-slate-900 dark:text-zinc-100">{product.color}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">Ukuran</p>
+                  <p className="font-medium text-slate-900 dark:text-zinc-100">{product.size}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">Stok</p>
+                  <p className="font-semibold text-slate-900 dark:text-zinc-100">{product.stock}</p>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+        {filteredProducts.length === 0 && (
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-12 text-center text-slate-500 dark:text-zinc-400">
+            Tidak ada produk yang cocok dengan pencarian Anda.
+          </div>
+        )}
       </div>
     </div>
   )

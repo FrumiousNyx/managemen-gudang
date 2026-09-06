@@ -171,7 +171,7 @@ export default function QCInbound() {
                   Cetak Label
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-slate-500 dark:text-zinc-400">Nama:</span>
                   <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{selectedProduct.name}</span>

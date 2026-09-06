@@ -410,7 +410,7 @@ export default function PackingOutbound() {
               <div id="reader" className="w-full"></div>
             </div>
           ) : (
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Scan className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <input
@@ -426,7 +426,7 @@ export default function PackingOutbound() {
               </div>
               
               {scanMode === 'bulk' && (
-                <div className="w-28">
+                <div className="w-full sm:w-28">
                   <input
                     ref={quantityRef}
                     type="number"

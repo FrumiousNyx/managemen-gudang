@@ -3,14 +3,17 @@
 import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
-import { Package, Plus, Edit, Trash2, X, Printer } from 'lucide-react'
+import { Package, Plus, Edit, Trash2, X, Printer, Save } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false)
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false)
   const [selectedProductForLabel, setSelectedProductForLabel] = useState<Product | null>(null)
+  const [selectedProductForStock, setSelectedProductForStock] = useState<Product | null>(null)
+  const [stockValue, setStockValue] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     color: '',
@@ -93,7 +96,8 @@ export default function Products() {
       await fetchProducts()
     } catch (error) {
       console.error('Error adding product:', error)
-      showToast('error', 'Gagal menambah produk')
+      console.error('Error details:', JSON.stringify(error, null, 2))
+      showToast('error', `Gagal menambah produk: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -123,6 +127,60 @@ export default function Products() {
     }
   }
 
+  const handleUpdateStock = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!supabase || !selectedProductForStock) {
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
+      return
+    }
+
+    const newStock = parseInt(stockValue)
+    if (isNaN(newStock) || newStock < 0) {
+      showToast('error', 'Stok harus berupa angka positif')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const stockDiff = newStock - selectedProductForStock.stock
+      
+      // Update product stock
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ stock: newStock })
+        .eq('id', selectedProductForStock.id)
+
+      if (updateError) throw updateError
+
+      // Log to inventory_logs if stock changed
+      if (stockDiff !== 0) {
+        const { error: logError } = await supabase
+          .from('inventory_logs')
+          .insert({
+            product_id: selectedProductForStock.id,
+            type: stockDiff > 0 ? 'INBOUND_QC' : 'OUTBOUND_PACKING',
+            qty: stockDiff,
+            notes: 'Manual stock adjustment via Products page'
+          })
+
+        if (logError) throw logError
+      }
+
+      showToast('success', 'Stok berhasil diperbarui')
+      setIsStockModalOpen(false)
+      setSelectedProductForStock(null)
+      setStockValue('')
+      await fetchProducts()
+    } catch (error) {
+      console.error('Error updating stock:', error)
+      showToast('error', 'Gagal memperbarui stok')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getStockStatus = (stock: number) => {
     if (stock === 0) return { label: 'Habis', color: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400 border-red-200 dark:border-red-900' }
     if (stock < 10) return { label: 'Menipis', color: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900' }
@@ -145,8 +203,8 @@ export default function Products() {
         </button>
       </div>
 
-      {/* Products Table */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+      {/* Products Table - Desktop */}
+      <div className="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 dark:divide-zinc-800">
             <thead className="bg-slate-50 dark:bg-zinc-950">
@@ -203,6 +261,17 @@ export default function Products() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => {
+                            setSelectedProductForStock(product)
+                            setStockValue(product.stock.toString())
+                            setIsStockModalOpen(true)
+                          }}
+                          className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors"
+                          title="Edit Stok"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => {
                             setSelectedProductForLabel(product)
                             setIsLabelModalOpen(true)
                           }}
@@ -233,6 +302,75 @@ export default function Products() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {products.map((product) => {
+          const status = getStockStatus(product.stock)
+          return (
+            <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">{product.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">{product.sku}</p>
+                </div>
+                <span className={`px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full border ${status.color}`}>
+                  {status.label}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-sm mb-3">
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">Warna</p>
+                  <p className="font-medium text-slate-900 dark:text-zinc-100">{product.color}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">Ukuran</p>
+                  <p className="font-medium text-slate-900 dark:text-zinc-100">{product.size}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">Stok</p>
+                  <p className="font-semibold text-slate-900 dark:text-zinc-100">{product.stock}</p>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-3 border-t border-slate-200 dark:border-zinc-800">
+                <button
+                  onClick={() => {
+                    setSelectedProductForStock(product)
+                    setStockValue(product.stock.toString())
+                    setIsStockModalOpen(true)
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit Stok
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedProductForLabel(product)
+                    setIsLabelModalOpen(true)
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+                >
+                  <Printer className="h-4 w-4" />
+                  Label
+                </button>
+                <button
+                  onClick={() => handleDelete(product.id)}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Hapus
+                </button>
+              </div>
+            </div>
+          )
+        })}
+        {products.length === 0 && (
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-12 text-center text-slate-500 dark:text-zinc-400">
+            Tidak ada produk ditemukan. Tambah SKU pertama Anda untuk memulai.
+          </div>
+        )}
       </div>
 
       {/* Add Product Modal */}
@@ -341,6 +479,69 @@ export default function Products() {
           <li>• Hapus produk dengan hati-hati - ini akan menghapus semua log inventaris terkait</li>
         </ul>
       </div>
+
+      {/* Edit Stock Modal */}
+      {isStockModalOpen && selectedProductForStock && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
+            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Edit Stok</h2>
+              <button
+                onClick={() => setIsStockModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4 p-4 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-200 dark:border-zinc-800">
+                <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">{selectedProductForStock.name}</p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">SKU: {selectedProductForStock.sku}</p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">{selectedProductForStock.color} / {selectedProductForStock.size}</p>
+              </div>
+
+              <form onSubmit={handleUpdateStock} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+                    Jumlah Stok Baru
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={stockValue}
+                    onChange={(e) => setStockValue(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg font-semibold"
+                    required
+                    autoFocus
+                  />
+                  <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
+                    Stok saat ini: {selectedProductForStock.stock}
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsStockModalOpen(false)}
+                    className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 px-4 py-3 bg-emerald-600 dark:bg-emerald-500 text-white font-medium rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:focus:ring-emerald-500 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {loading ? 'Menyimpan...' : 'Simpan'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Label Printing Modal */}
       {isLabelModalOpen && selectedProductForLabel && (

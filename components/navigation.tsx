@@ -11,8 +11,8 @@ export function Navigation() {
   
   const navItems = [
     { href: "/", label: "Dasbor Stok", icon: BarChart3 },
-    { href: "/qc-inbound", label: "Input QC", icon: ShoppingCart },
-    { href: "/packing-outbound", label: "Pengemasan", icon: Scan },
+    { href: "/qc-inbound", label: "Barang Masuk", icon: ShoppingCart },
+    { href: "/packing-outbound", label: "Barang Keluar", icon: Scan },
     { href: "/products", label: "Produk", icon: Package },
   ]
 

@@ -401,7 +401,7 @@ export default function PackingOutbound() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Pengemasan</h1>
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100">Barang Keluar</h1>
         <p className="mt-2 text-slate-500 dark:text-zinc-400">Pindai stiker barcode untuk mengurangi stok saat pengemasan</p>
       </div>
 

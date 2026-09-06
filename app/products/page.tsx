@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
 import { Package, Plus, Edit, Trash2, X, Printer } from 'lucide-react'
-import QRCode from 'qrcode.react'
+import { QRCodeCanvas } from 'qrcode.react'
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([])
@@ -362,7 +362,7 @@ export default function Products() {
                 <div className="text-center">
                   <div className="text-xs font-bold text-slate-900 mb-1">TENZE INVENTORY</div>
                   <div className="flex justify-center mb-2">
-                    <QRCode 
+                    <QRCodeCanvas 
                       value={selectedProductForLabel.sku} 
                       size={60}
                       level="L"

@@ -23,6 +23,9 @@ export default function PackingOutbound() {
   const [successMessage, setSuccessMessage] = useState('')
   const [isCameraActive, setIsCameraActive] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [lastScannedProduct, setLastScannedProduct] = useState<Product | null>(null)
+  const [lastScannedQty, setLastScannedQty] = useState(0)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
@@ -189,11 +192,10 @@ export default function PackingOutbound() {
 
       // Success
       playSuccessSound()
-      const successText = qty === 1 
-        ? `Berhasil: ${product.name} - ${product.color} (${product.size})`
-        : `Berhasil: ${qty}x ${product.name} - ${product.color} (${product.size})`
       
-      setSuccessMessage(successText)
+      setLastScannedProduct({ ...product, stock: rpcResult.remaining_stock || product.stock - qty })
+      setLastScannedQty(qty)
+      setShowSuccessModal(true)
       setErrorMessage('')
       
       // Add to recently scanned
@@ -212,9 +214,6 @@ export default function PackingOutbound() {
       if (scanMode === 'bulk') {
         setQuantity('1')
       }
-      
-      // Clear success message after 2 seconds
-      setTimeout(() => setSuccessMessage(''), 2000)
     } catch (error) {
       console.error('Error processing scan:', error)
       setErrorMessage('Error memproses pindai')
@@ -307,11 +306,10 @@ export default function PackingOutbound() {
 
         // Success
         playSuccessSound()
-        const successText = qty === 1 
-          ? `Berhasil: ${product.name} - ${product.color} (${product.size})`
-          : `Berhasil: ${qty}x ${product.name} - ${product.color} (${product.size})`
         
-        setSuccessMessage(successText)
+        setLastScannedProduct({ ...product, stock: rpcResult.remaining_stock || product.stock - qty })
+        setLastScannedQty(qty)
+        setShowSuccessModal(true)
         setErrorMessage('')
         
         // Add to recently scanned
@@ -331,12 +329,6 @@ export default function PackingOutbound() {
         if (scanMode === 'bulk') {
           setQuantity('1')
         }
-        
-        // Auto-focus for next scan
-        if (inputRef.current) inputRef.current.focus()
-        
-        // Clear success message after 2 seconds
-        setTimeout(() => setSuccessMessage(''), 2000)
       } catch (error) {
         console.error('Error processing scan:', error)
         setErrorMessage('Error memproses pindai')
@@ -362,6 +354,14 @@ export default function PackingOutbound() {
       minute: '2-digit', 
       second: '2-digit' 
     })
+  }
+
+  const handleScanAgain = () => {
+    setShowSuccessModal(false)
+    setLastScannedProduct(null)
+    setLastScannedQty(0)
+    setBarcodeInput('')
+    if (inputRef.current) inputRef.current.focus()
   }
 
   return (
@@ -550,6 +550,36 @@ export default function PackingOutbound() {
           <li>• Feedback audio mengkonfirmasi pindai berhasil dan memberi peringatan untuk error</li>
         </ul>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && lastScannedProduct && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
+            <div className="p-8 text-center">
+              <div className="h-20 w-20 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="h-12 w-12 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-zinc-100 mb-2">Scan Berhasil!</h2>
+              <p className="text-slate-600 dark:text-zinc-400 mb-6">
+                {lastScannedQty === 1 
+                  ? `${lastScannedProduct.name} - ${lastScannedProduct.color} (${lastScannedProduct.size})`
+                  : `${lastScannedQty}x ${lastScannedProduct.name} - ${lastScannedProduct.color} (${lastScannedProduct.size})`
+                }
+              </p>
+              <div className="bg-slate-50 dark:bg-zinc-950 rounded-xl p-4 mb-6">
+                <p className="text-sm text-slate-600 dark:text-zinc-400">Sisa Stok</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-zinc-100">{lastScannedProduct.stock}</p>
+              </div>
+              <button
+                onClick={handleScanAgain}
+                className="w-full px-6 py-4 bg-emerald-600 dark:bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:focus:ring-emerald-500 focus:ring-offset-2 transition-all text-lg"
+              >
+                Scan Lagi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

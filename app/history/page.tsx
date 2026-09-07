@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
-import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar, Trash2, AlertTriangle } from 'lucide-react'
 
 interface InventoryLog {
   id: string
@@ -29,6 +29,7 @@ export default function History() {
   const [endDate, setEndDate] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
   const itemsPerPage = 20
   const { showToast } = useToast()
 
@@ -123,6 +124,33 @@ export default function History() {
   )
   const groupedLogs = groupLogsByDate(paginatedLogs)
 
+  const handleClearHistory = async () => {
+    if (!supabase) {
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error } = await supabase
+        .from('inventory_logs')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000') // Delete all logs
+
+      if (error) throw error
+
+      showToast('success', 'Riwayat berhasil dihapus')
+      setLogs([])
+      setCurrentPage(1)
+      setShowClearConfirm(false)
+    } catch (error) {
+      console.error('Error clearing history:', error)
+      showToast('error', 'Gagal menghapus riwayat')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getLogTypeLabel = (type: string) => {
     switch (type) {
       case 'INBOUND_QC':
@@ -166,9 +194,18 @@ export default function History() {
       {/* Filter */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-6">
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Filter</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Filter</h2>
+            </div>
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className="flex items-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Bersihkan History
+            </button>
           </div>
           
           {/* Type Filter */}
@@ -350,6 +387,40 @@ export default function History() {
           </>
         )}
       </div>
+
+      {/* Clear History Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">
+                Hapus Riwayat?
+              </h3>
+            </div>
+            <p className="text-slate-600 dark:text-zinc-400 mb-6">
+              Apakah Anda yakin ingin menghapus semua riwayat transaksi? Data stok produk tidak akan terpengaruh.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 px-4 py-2 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleClearHistory}
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-red-600 dark:bg-red-500 text-white font-medium rounded-xl hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {loading ? 'Menghapus...' : 'Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

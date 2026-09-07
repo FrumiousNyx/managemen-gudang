@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
@@ -15,6 +16,7 @@ interface ScannedItem {
 }
 
 export default function PackingOutbound() {
+  const router = useRouter()
   const [barcodeInput, setBarcodeInput] = useState('')
   const [quantity, setQuantity] = useState('1')
   const [scanMode, setScanMode] = useState<ScanMode>('single')
@@ -220,6 +222,9 @@ export default function PackingOutbound() {
 
       showToast('success', `Pindai: ${qty}x ${product.name}`)
       
+      // Refresh router to update other pages
+      router.refresh()
+      
       // Auto-resume scanner after 2 seconds
       setTimeout(() => {
         if (scannerRef.current) {
@@ -331,6 +336,9 @@ export default function PackingOutbound() {
 
         showToast('success', `Scanned: ${qty}x ${product.name}`)
         setBarcodeInput('')
+        
+        // Refresh router to update other pages
+        router.refresh()
       } catch (error) {
         console.error('Error processing scan:', error)
         setErrorMessage('Error memproses pindai')

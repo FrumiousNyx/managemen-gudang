@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
 import { ShoppingCart, Plus, Search, Printer, X } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
 
 export default function QCInbound() {
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false)
@@ -98,8 +100,9 @@ export default function QCInbound() {
       setQuantity('')
       setSearchTerm('')
       
-      // Refresh products
+      // Refresh products and router
       await fetchProducts()
+      router.refresh()
     } catch (error) {
       console.error('Error adding stock:', error)
       showToast('error', 'Gagal menambah stok')

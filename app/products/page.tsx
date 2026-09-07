@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
+import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { useToast } from '@/components/toast-provider'
 import { Package, Plus, Edit, Trash2, X, Printer, Save } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
@@ -26,18 +27,6 @@ export default function Products() {
   useEffect(() => {
     fetchProducts()
   }, [])
-
-  const getStockThreshold = (productName: string): number => {
-    const name = productName.toLowerCase()
-    if (name.includes('lina')) return 30
-    if (name.includes('rocela') || name.includes('legging rok 3/4') || name.includes('lr3')) return 40
-    if (name.includes('asimetri')) return 60
-    return 20 // Default threshold for other products
-  }
-
-  const isLowStock = (product: Product): boolean => {
-    return product.stock < getStockThreshold(product.name)
-  }
 
   const fetchProducts = async () => {
     if (!supabase) {
@@ -191,13 +180,6 @@ export default function Products() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const getStockStatus = (product: Product) => {
-    const threshold = getStockThreshold(product.name)
-    if (product.stock === 0) return { label: 'Habis', color: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400 border-red-200 dark:border-red-900' }
-    if (product.stock < threshold) return { label: 'Menipis', color: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900' }
-    return { label: 'Aman', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900' }
   }
 
   return (

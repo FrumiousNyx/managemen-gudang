@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
+import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { Search, Package, AlertTriangle, CheckCircle } from 'lucide-react'
 
 export default function Dashboard() {
@@ -50,13 +51,7 @@ export default function Dashboard() {
 
   const totalSKUs = products.length
   const totalStock = products.reduce((sum, p) => sum + p.stock, 0)
-  const lowStockCount = products.filter((p) => p.stock < 10).length
-
-  const getStockStatus = (stock: number) => {
-    if (stock === 0) return { label: 'Habis', color: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400 border-red-200 dark:border-red-900' }
-    if (stock < 10) return { label: 'Menipis', color: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900' }
-    return { label: 'Aman', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900' }
-  }
+  const lowStockCount = products.filter((p) => isLowStock(p)).length
 
   if (loading) {
     return (
@@ -154,7 +149,7 @@ export default function Dashboard() {
             </thead>
             <tbody className="bg-white dark:bg-zinc-900 divide-y divide-slate-200 dark:divide-zinc-800">
               {filteredProducts.map((product) => {
-                const status = getStockStatus(product.stock)
+                const status = getStockStatus(product)
                 return (
                   <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-zinc-950 transition-colors">
                     <td className="px-4 py-3.5 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-zinc-100">
@@ -195,7 +190,7 @@ export default function Dashboard() {
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
         {filteredProducts.map((product) => {
-          const status = getStockStatus(product.stock)
+          const status = getStockStatus(product)
           return (
             <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
               <div className="flex justify-between items-start mb-3">

@@ -12,7 +12,7 @@ export function getStockThreshold(productName: string): number {
   const lowerName = productName.toLowerCase()
   
   if (lowerName.includes('lina')) {
-    return 30
+    return 60
   } else if (lowerName.includes('rocela')) {
     return 40
   } else if (lowerName.includes('legging rok') || lowerName.includes('lr 3/4')) {
@@ -22,7 +22,7 @@ export function getStockThreshold(productName: string): number {
   }
   
   // Default threshold
-  return 10
+  return 40
 }
 
 /**

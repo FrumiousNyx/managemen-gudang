@@ -172,11 +172,6 @@ export default function PackingOutbound() {
         playErrorSound()
         showToast('error', errorMsg)
         
-        // Reset quantity to 1 in bulk mode after error
-        if (scanMode === 'bulk') {
-          setQuantity('1')
-        }
-        
         // Resume scanner on error
         if (scannerRef.current) {
           scannerRef.current.resume()
@@ -195,6 +190,7 @@ export default function PackingOutbound() {
       if (productError || !product) {
         setErrorMessage('Error mengambil detail produk')
         playErrorSound()
+        showToast('error', 'Error mengambil detail produk')
         
         // Resume scanner on error
         if (scannerRef.current) {
@@ -224,11 +220,6 @@ export default function PackingOutbound() {
 
       showToast('success', `Pindai: ${qty}x ${product.name}`)
       
-      // Reset quantity to 1 in bulk mode after successful scan
-      if (scanMode === 'bulk') {
-        setQuantity('1')
-      }
-      
       // Auto-resume scanner after 2 seconds
       setTimeout(() => {
         if (scannerRef.current) {
@@ -241,11 +232,6 @@ export default function PackingOutbound() {
       setErrorMessage('Error memproses pindai')
       playErrorSound()
       showToast('error', 'Error memproses pindai')
-      
-      // Reset quantity to 1 in bulk mode after error
-      if (scanMode === 'bulk') {
-        setQuantity('1')
-      }
       
       // Resume scanner on error
       if (scannerRef.current) {
@@ -304,11 +290,6 @@ export default function PackingOutbound() {
           showToast('error', errorMsg)
           setBarcodeInput('')
           
-          // Reset quantity to 1 in bulk mode after error
-          if (scanMode === 'bulk') {
-            setQuantity('1')
-          }
-          
           if (inputRef.current) inputRef.current.focus()
           isProcessing.current = false
           return
@@ -350,22 +331,12 @@ export default function PackingOutbound() {
 
         showToast('success', `Scanned: ${qty}x ${product.name}`)
         setBarcodeInput('')
-        
-        // Reset quantity to 1 in bulk mode after successful scan
-        if (scanMode === 'bulk') {
-          setQuantity('1')
-        }
       } catch (error) {
         console.error('Error processing scan:', error)
         setErrorMessage('Error memproses pindai')
         playErrorSound()
         showToast('error', 'Error memproses pindai')
         setBarcodeInput('')
-        
-        // Reset quantity to 1 in bulk mode after error
-        if (scanMode === 'bulk') {
-          setQuantity('1')
-        }
         
         if (inputRef.current) inputRef.current.focus()
       } finally {

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
 import { ShoppingCart, Plus, Search, Printer, X } from 'lucide-react'
-import { QRCodeCanvas } from 'qrcode.react'
+import QRCode from 'react-qr-code'
 
 export default function QCInbound() {
   const router = useRouter()
@@ -13,6 +13,7 @@ export default function QCInbound() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false)
   const [selectedProductForLabel, setSelectedProductForLabel] = useState<Product | null>(null)
+  const [printLabelProduct, setPrintLabelProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -264,16 +265,24 @@ export default function QCInbound() {
             
             <div className="p-6">
               {/* Label Preview - 50x30mm */}
-              <div className="bg-white border-2 border-slate-300 rounded-lg p-3 mx-auto" style={{ width: '300px', height: '180px' }}>
+              <div 
+                id="thermal-label-print"
+                className="bg-white border-2 border-slate-300 rounded-lg p-3 mx-auto" 
+                style={{ width: '300px', height: '180px' }}
+              >
                 <div className="text-center">
                   <div className="text-xs font-bold text-slate-900 mb-1">TENZE INVENTORY</div>
                   <div className="flex justify-center mb-2">
-                    <QRCodeCanvas 
-                      value={selectedProductForLabel.sku} 
-                      size={60}
-                      level="L"
-                      includeMargin={false}
-                    />
+                    {selectedProductForLabel.sku ? (
+                      <QRCode 
+                        value={selectedProductForLabel.sku} 
+                        size={60}
+                      />
+                    ) : (
+                      <div className="w-[60px] h-[60px] bg-slate-200 flex items-center justify-center text-xs text-slate-500">
+                        No SKU
+                      </div>
+                    )}
                   </div>
                   <div className="text-xs font-semibold text-slate-900 mb-0.5">{selectedProductForLabel.name}</div>
                   <div className="text-xs text-slate-600 mb-0.5">{selectedProductForLabel.color} / {selectedProductForLabel.size}</div>
@@ -296,8 +305,8 @@ export default function QCInbound() {
                 </button>
                 <button
                   onClick={() => {
-                    window.print()
-                    setIsLabelModalOpen(false)
+                    setPrintLabelProduct(selectedProductForLabel)
+                    setTimeout(() => window.print(), 100)
                   }}
                   className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
@@ -305,6 +314,25 @@ export default function QCInbound() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Isolated Print Container - Outside Modal Hierarchy */}
+      {printLabelProduct && (
+        <div id="single-label-print" style={{ display: 'none' }}>
+          <div className="text-center" style={{ padding: '2mm' }}>
+            <div className="text-xs font-bold" style={{ marginBottom: '1mm' }}>TENZE INVENTORY</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2mm' }}>
+              <QRCode 
+                value={printLabelProduct.sku} 
+                size={60}
+              />
+            </div>
+            <div className="text-xs font-semibold" style={{ marginBottom: '0.5mm' }}>{printLabelProduct.name}</div>
+            <div className="text-xs" style={{ marginBottom: '0.5mm' }}>{printLabelProduct.color} / {printLabelProduct.size}</div>
+            <div className="text-xs font-mono">{printLabelProduct.sku}</div>
+            <div className="text-xs font-bold" style={{ marginTop: '1mm', color: '#16a34a' }}>QC PASSED</div>
           </div>
         </div>
       )}

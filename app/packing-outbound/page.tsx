@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
-import { Scan, Package, AlertCircle, CheckCircle, XCircle, Layers, Zap, Camera, CameraOff } from 'lucide-react'
+import { Scan, Package, AlertCircle, CheckCircle, XCircle, Layers, Zap, Camera, CameraOff, RotateCw } from 'lucide-react'
 
 type ScanMode = 'single' | 'bulk'
 
@@ -377,11 +377,64 @@ export default function PackingOutbound() {
     if (inputRef.current) inputRef.current.focus()
   }
 
+  const handleResetSession = () => {
+    // Clear scanned items
+    setRecentlyScanned([])
+    
+    // Clear input fields
+    setBarcodeInput('')
+    setQuantity('1')
+    
+    // Stop camera if active
+    if (isCameraActive) {
+      setIsCameraActive(false)
+    }
+    
+    // Clear scanner reference
+    if (scannerRef.current) {
+      scannerRef.current.clear()
+      scannerRef.current = null
+    }
+    
+    // Reset scan mode
+    setScanMode('single')
+    
+    // Clear messages
+    setErrorMessage('')
+    setSuccessMessage('')
+    
+    // Clear last scanned product
+    setLastScannedProduct(null)
+    setLastScannedQty(0)
+    setShowSuccessModal(false)
+    
+    // Reset processing flag
+    isProcessing.current = false
+    
+    // Focus back on input
+    setTimeout(() => {
+      if (inputRef.current) inputRef.current.focus()
+    }, 100)
+    
+    // Show toast notification
+    showToast('success', 'Sesi pindaian berhasil di-reset')
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Barang Keluar</h1>
-        <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Pindai stiker barcode untuk mengurangi stok saat pengemasan</p>
+      <div className="flex justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Barang Keluar</h1>
+          <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Pindai stiker barcode untuk mengurangi stok saat pengemasan</p>
+        </div>
+        <button
+          onClick={handleResetSession}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-medium rounded-xl transition-all"
+          title="Reset Pindaian & Kamera"
+        >
+          <RotateCw className="h-4 w-4" />
+          Reset Sesi
+        </button>
       </div>
 
       {/* Mode Switcher */}
@@ -579,6 +632,7 @@ export default function PackingOutbound() {
           <li>• Validasi stok mencegah overselling dengan pesan error yang jelas</li>
           <li>• Operasi database atomik mencegah race condition di lingkungan multi-user</li>
           <li>• Feedback audio mengkonfirmasi pindai berhasil dan memberi peringatan untuk error</li>
+          <li>• <strong>Reset Sesi:</strong> Klik tombol "Reset Sesi" untuk membersihkan semua data dan mematikan kamera</li>
         </ul>
       </div>
 

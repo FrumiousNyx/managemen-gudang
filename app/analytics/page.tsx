@@ -29,7 +29,10 @@ interface ProductSales {
 
 export default function Analytics() {
   const [logs, setLogs] = useState<InventoryLog[]>([])
+  const [filteredLogs, setFilteredLogs] = useState<InventoryLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -56,6 +59,7 @@ export default function Analytics() {
 
       if (error) throw error
       setLogs(data || [])
+      setFilteredLogs(data || [])
     } catch (error) {
       console.error('Error fetching logs:', error)
       showToast('error', 'Gagal memuat data analitik')
@@ -64,11 +68,36 @@ export default function Analytics() {
     }
   }
 
+  const handleDateFilter = () => {
+    if (!startDate || !endDate) {
+      setFilteredLogs(logs)
+      return
+    }
+
+    const start = new Date(startDate)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(endDate)
+    end.setHours(23, 59, 59, 999)
+
+    const filtered = logs.filter(log => {
+      const logDate = new Date(log.created_at)
+      return logDate >= start && logDate <= end
+    })
+
+    setFilteredLogs(filtered)
+  }
+
+  const resetFilter = () => {
+    setStartDate('')
+    setEndDate('')
+    setFilteredLogs(logs)
+  }
+
   // Calculate sales by time period
   const getTodaySales = () => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    return logs
+    return filteredLogs
       .filter(log => new Date(log.created_at) >= today)
       .reduce((sum, log) => sum + Math.abs(log.qty), 0)
   }
@@ -76,7 +105,7 @@ export default function Analytics() {
   const getWeekSales = () => {
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
-    return logs
+    return filteredLogs
       .filter(log => new Date(log.created_at) >= weekAgo)
       .reduce((sum, log) => sum + Math.abs(log.qty), 0)
   }
@@ -84,7 +113,7 @@ export default function Analytics() {
   const getMonthSales = () => {
     const monthAgo = new Date()
     monthAgo.setDate(monthAgo.getDate() - 30)
-    return logs
+    return filteredLogs
       .filter(log => new Date(log.created_at) >= monthAgo)
       .reduce((sum, log) => sum + Math.abs(log.qty), 0)
   }
@@ -93,7 +122,7 @@ export default function Analytics() {
   const getTopProducts = (): ProductSales[] => {
     const productMap = new Map<string, ProductSales>()
 
-    logs.forEach(log => {
+    filteredLogs.forEach(log => {
       if (!log.product) return
       const key = `${log.product.sku}-${log.product.color}-${log.product.size}`
       const existing = productMap.get(key)
@@ -120,7 +149,7 @@ export default function Analytics() {
   const getColorBreakdown = () => {
     const colorMap = new Map<string, number>()
 
-    logs.forEach(log => {
+    filteredLogs.forEach(log => {
       if (!log.product) return
       const existing = colorMap.get(log.product.color) || 0
       colorMap.set(log.product.color, existing + Math.abs(log.qty))
@@ -135,7 +164,7 @@ export default function Analytics() {
   const getSizeBreakdown = () => {
     const sizeMap = new Map<string, number>()
 
-    logs.forEach(log => {
+    filteredLogs.forEach(log => {
       if (!log.product) return
       const existing = sizeMap.get(log.product.size) || 0
       sizeMap.set(log.product.size, existing + Math.abs(log.qty))
@@ -162,6 +191,49 @@ export default function Analytics() {
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Analitik Penjualan</h1>
         <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Lihat data penjualan dan produk terlaris</p>
+      </div>
+
+      {/* Date Range Filter */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-8">
+        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-4">Filter Tanggal</h3>
+        <div className="flex flex-col sm:flex-row gap-4 items-end">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+              Tanggal Mulai
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+              Tanggal Akhir
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+            />
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={handleDateFilter}
+              className="px-6 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+            >
+              Filter
+            </button>
+            <button
+              onClick={resetFilter}
+              className="px-6 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Sales Summary Cards */}
@@ -209,9 +281,16 @@ export default function Analytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top 5 Products */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Package className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Top 5 Produk Terlaris</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Top 5 Produk Terlaris</h2>
+            </div>
+            {startDate && endDate && (
+              <span className="text-xs text-slate-500 dark:text-zinc-400">
+                Filter: {startDate} - {endDate}
+              </span>
+            )}
           </div>
           {topProducts.length === 0 ? (
             <p className="text-slate-500 dark:text-zinc-400 text-center py-8">Belum ada data penjualan</p>
@@ -247,16 +326,24 @@ export default function Analytics() {
 
         {/* Color Breakdown */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <ArrowUp className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Breakdown Warna</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <ArrowUp className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Breakdown Warna</h2>
+            </div>
+            {startDate && endDate && (
+              <span className="text-xs text-slate-500 dark:text-zinc-400">
+                Filter: {startDate} - {endDate}
+              </span>
+            )}
           </div>
           {colorBreakdown.length === 0 ? (
             <p className="text-slate-500 dark:text-zinc-400 text-center py-8">Belum ada data</p>
           ) : (
             <div className="space-y-4">
               {colorBreakdown.map(([color, qty], index) => {
-                const percentage = logs.length > 0 ? (qty / getMonthSales()) * 100 : 0
+                const totalSales = filteredLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
+                const percentage = totalSales > 0 ? (qty / totalSales) * 100 : 0
                 return (
                   <div key={color} className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -278,9 +365,16 @@ export default function Analytics() {
 
         {/* Size Breakdown */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 lg:col-span-2">
-          <div className="flex items-center gap-2 mb-6">
-            <Package className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Breakdown Ukuran</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Breakdown Ukuran</h2>
+            </div>
+            {startDate && endDate && (
+              <span className="text-xs text-slate-500 dark:text-zinc-400">
+                Filter: {startDate} - {endDate}
+              </span>
+            )}
           </div>
           {sizeBreakdown.length === 0 ? (
             <p className="text-slate-500 dark:text-zinc-400 text-center py-8">Belum ada data</p>

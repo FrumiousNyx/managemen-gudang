@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { useToast } from '@/components/toast-provider'
-import { Package, Plus, Edit, Trash2, X, Printer, Save } from 'lucide-react'
+import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search } from 'lucide-react'
 import QRCode from 'react-qr-code'
 
 export default function Products() {
@@ -15,7 +15,6 @@ export default function Products() {
   const [selectedProductForLabel, setSelectedProductForLabel] = useState<Product | null>(null)
   const [selectedProductForStock, setSelectedProductForStock] = useState<Product | null>(null)
   const [stockValue, setStockValue] = useState('')
-  const [printLabelProduct, setPrintLabelProduct] = useState<Product | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     color: '',
@@ -23,6 +22,9 @@ export default function Products() {
     sku: ''
   })
   const [loading, setLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<'name' | 'stock' | 'status'>('status')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -47,6 +49,45 @@ export default function Products() {
     } catch (error) {
       console.error('Error fetching products:', error)
       showToast('error', 'Gagal memuat produk')
+    }
+  }
+
+  const filteredProducts = products.filter((product) => {
+    if (!searchQuery.trim()) return true
+    const keywords = searchQuery.toLowerCase().trim().split(/\s+/)
+    const searchTarget = `${product.sku} ${product.name} ${product.color} ${product.size}`.toLowerCase()
+    return keywords.every((keyword) => searchTarget.includes(keyword))
+  })
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return sortOrder === 'asc' 
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name)
+      case 'stock':
+        return sortOrder === 'asc' 
+          ? a.stock - b.stock
+          : b.stock - a.stock
+      case 'status':
+        const aStatus = getStockStatus(a)
+        const bStatus = getStockStatus(b)
+        const statusOrder = { 'Menipis': 0, 'Aman': 1 }
+        const statusCompare = (statusOrder[aStatus.label as keyof typeof statusOrder] ?? 2) - (statusOrder[bStatus.label as keyof typeof statusOrder] ?? 2)
+        // ASC: Menipis (0) first, Aman (1) second
+        // DESC: Aman (1) first, Menipis (0) second
+        return sortOrder === 'asc' ? statusCompare : -statusCompare
+      default:
+        return 0
+    }
+  })
+
+  const handleSort = (field: 'name' | 'stock' | 'status') => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortOrder('asc')
     }
   }
 
@@ -183,6 +224,129 @@ export default function Products() {
     }
   }
 
+  const handlePrintLabel = (product: Product) => {
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) return
+
+    const qrSvgElement = document.querySelector('#thermal-label-preview svg')
+    const qrSvgHtml = qrSvgElement ? qrSvgElement.outerHTML : ''
+
+    doc.open()
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Label - ${product.sku}</title>
+          <style>
+            @page {
+              size: 50mm 30mm;
+              margin: 0;
+            }
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+            }
+            html, body {
+              width: 50mm;
+              height: 30mm;
+              background: #fff;
+              color: #000;
+              font-family: Arial, sans-serif;
+              overflow: hidden;
+            }
+            .container {
+              width: 100%;
+              height: 100%;
+              padding: 1.5mm 2mm;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: space-between;
+              text-align: center;
+            }
+            .title { 
+              font-size: 9px; 
+              font-weight: 800; 
+              letter-spacing: 0.5px;
+              text-transform: uppercase;
+              line-height: 1;
+            }
+            .qr-container { 
+              display: flex; 
+              justify-content: center; 
+              align-items: center;
+              flex: 1;
+              margin: 1px 0;
+            }
+            .qr-container svg { 
+              width: 75px !important; 
+              height: 75px !important; 
+            }
+            .name { 
+              font-size: 10px; 
+              font-weight: bold; 
+              line-height: 1.1;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              max-width: 100%;
+            }
+            .details { 
+              font-size: 8px; 
+              font-weight: 600;
+              color: #222; 
+              line-height: 1;
+            }
+            .sku { 
+              font-size: 9px; 
+              font-family: 'Courier New', monospace; 
+              font-weight: 800; 
+              letter-spacing: 0.5px;
+              line-height: 1;
+            }
+            .qc { 
+              font-size: 7.5px; 
+              font-weight: 800; 
+              color: #16a34a; 
+              line-height: 1;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="title">TENZE INVENTORY</div>
+            <div class="qr-container">${qrSvgHtml}</div>
+            <div class="name">${product.name}</div>
+            <div class="details">${product.color} / ${product.size}</div>
+            <div class="sku">${product.sku}</div>
+            <div class="qc">QC PASSED</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.focus();
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `)
+    doc.close()
+
+    setTimeout(() => {
+      document.body.removeChild(iframe)
+    }, 1000)
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -199,6 +363,67 @@ export default function Products() {
         </button>
       </div>
 
+      {/* Search Bar */}
+      <div className="mb-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari berdasarkan SKU, Nama, Warna, atau Ukuran..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-2">
+          {searchQuery ? `Ditemukan ${sortedProducts.length} produk` : `Total ${products.length} produk`}
+        </p>
+      </div>
+
+      {/* Sort Controls - Mobile */}
+      <div className="md:hidden mb-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleSort('name')}
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              sortBy === 'name' 
+                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900' 
+                : 'bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-300'
+            }`}
+          >
+            Nama
+          </button>
+          <button
+            onClick={() => handleSort('stock')}
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              sortBy === 'stock' 
+                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900' 
+                : 'bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-300'
+            }`}
+          >
+            Stok
+          </button>
+          <button
+            onClick={() => handleSort('status')}
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              sortBy === 'status' 
+                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900' 
+                : 'bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-300'
+            }`}
+          >
+            Status
+          </button>
+        </div>
+      </div>
+
       {/* Products Table - Desktop */}
       <div className="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -208,8 +433,14 @@ export default function Products() {
                 <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                   SKU Barcode
                 </th>
-                <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-                  Nama Produk
+                <th 
+                  className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center gap-1">
+                    Nama Produk
+                    {sortBy === 'name' && <ArrowUpDown className="h-3 w-3" />}
+                  </div>
                 </th>
                 <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                   Warna
@@ -217,11 +448,23 @@ export default function Products() {
                 <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                   Ukuran
                 </th>
-                <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-                  Stok
+                <th 
+                  className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                  onClick={() => handleSort('stock')}
+                >
+                  <div className="flex items-center gap-1">
+                    Stok
+                    {sortBy === 'stock' && <ArrowUpDown className="h-3 w-3" />}
+                  </div>
                 </th>
-                <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-                  Status
+                <th 
+                  className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center gap-1">
+                    Status
+                    {sortBy === 'status' && <ArrowUpDown className="h-3 w-3" />}
+                  </div>
                 </th>
                 <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                   Aksi
@@ -229,7 +472,7 @@ export default function Products() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-zinc-900 divide-y divide-slate-200 dark:divide-zinc-800">
-              {products.map((product) => {
+              {sortedProducts.map((product) => {
                 const status = getStockStatus(product)
                 return (
                   <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-zinc-950 transition-colors">
@@ -288,7 +531,7 @@ export default function Products() {
                   </tr>
                 )
               })}
-              {products.length === 0 && (
+              {sortedProducts.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center text-slate-500 dark:text-zinc-400">
                     Tidak ada produk ditemukan. Tambah SKU pertama Anda untuk memulai.
@@ -302,7 +545,7 @@ export default function Products() {
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
-        {products.map((product) => {
+        {sortedProducts.map((product) => {
           const status = getStockStatus(product)
           return (
             <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
@@ -362,7 +605,7 @@ export default function Products() {
             </div>
           )
         })}
-        {products.length === 0 && (
+        {sortedProducts.length === 0 && (
           <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-12 text-center text-slate-500 dark:text-zinc-400">
             Tidak ada produk ditemukan. Tambah SKU pertama Anda untuk memulai.
           </div>
@@ -473,7 +716,20 @@ export default function Products() {
           <li>• Produk baru mulai dengan stok 0 dan perlu ditambahkan melalui Input QC</li>
           <li>• Klik ikon printer untuk mencetak label thermal 50x30mm</li>
           <li>• Hapus produk dengan hati-hati - ini akan menghapus semua log inventaris terkait</li>
+          <li>• Gunakan kolom pencarian untuk mencari produk berdasarkan SKU, nama, warna, atau ukuran</li>
+          <li>• Pencarian mendukung multi-kata (contoh: "rocela hitam L")</li>
+          <li>• Klik header tabel (Nama, Stok, Status) untuk mengurutkan produk</li>
         </ul>
+        
+        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-zinc-800">
+          <h4 className="font-semibold text-slate-900 dark:text-zinc-100 mb-2 text-sm">Tips Pengaturan Printer Thermal</h4>
+          <ul className="text-xs text-slate-600 dark:text-zinc-400 space-y-1">
+            <li>• Pilih printer thermal pada Destination (bukan Microsoft Print to PDF)</li>
+            <li>• Klik More settings → Paper size: 50mm x 30mm atau 2 x 1.2 inches</li>
+            <li>• Margins: None (Tanpa margin)</li>
+            <li>• Hilangkan centang Headers and footers untuk menghilangkan tanggal & URL</li>
+          </ul>
+        </div>
       </div>
 
       {/* Edit Stock Modal */}
@@ -562,7 +818,7 @@ export default function Products() {
               >
                 <div className="text-center">
                   <div className="text-xs font-bold text-slate-900 mb-1">TENZE INVENTORY</div>
-                  <div className="flex justify-center mb-2">
+                  <div className="flex justify-center mb-2" id="thermal-label-preview">
                     {selectedProductForLabel.sku ? (
                       <QRCode 
                         value={selectedProductForLabel.sku} 
@@ -594,10 +850,7 @@ export default function Products() {
                   Batal
                 </button>
                 <button
-                  onClick={() => {
-                    setPrintLabelProduct(selectedProductForLabel)
-                    setTimeout(() => window.print(), 100)
-                  }}
+                  onClick={() => handlePrintLabel(selectedProductForLabel)}
                   className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
                   Cetak
@@ -608,24 +861,6 @@ export default function Products() {
         </div>
       )}
 
-      {/* Isolated Print Container - Outside Modal Hierarchy */}
-      {printLabelProduct && (
-        <div id="single-label-print" style={{ display: 'none' }}>
-          <div className="text-center" style={{ padding: '2mm' }}>
-            <div className="text-xs font-bold" style={{ marginBottom: '1mm' }}>TENZE INVENTORY</div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2mm' }}>
-              <QRCode 
-                value={printLabelProduct.sku} 
-                size={60}
-              />
-            </div>
-            <div className="text-xs font-semibold" style={{ marginBottom: '0.5mm' }}>{printLabelProduct.name}</div>
-            <div className="text-xs" style={{ marginBottom: '0.5mm' }}>{printLabelProduct.color} / {printLabelProduct.size}</div>
-            <div className="text-xs font-mono">{printLabelProduct.sku}</div>
-            <div className="text-xs font-bold" style={{ marginTop: '1mm', color: '#16a34a' }}>QC PASSED</div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

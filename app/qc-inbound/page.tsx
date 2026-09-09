@@ -13,7 +13,6 @@ export default function QCInbound() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false)
   const [selectedProductForLabel, setSelectedProductForLabel] = useState<Product | null>(null)
-  const [printLabelProduct, setPrintLabelProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -110,6 +109,129 @@ export default function QCInbound() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handlePrintLabel = (product: Product) => {
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) return
+
+    const qrSvgElement = document.querySelector('#thermal-label-preview svg')
+    const qrSvgHtml = qrSvgElement ? qrSvgElement.outerHTML : ''
+
+    doc.open()
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Label - ${product.sku}</title>
+          <style>
+            @page {
+              size: 50mm 30mm;
+              margin: 0;
+            }
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+            }
+            html, body {
+              width: 50mm;
+              height: 30mm;
+              background: #fff;
+              color: #000;
+              font-family: Arial, sans-serif;
+              overflow: hidden;
+            }
+            .container {
+              width: 100%;
+              height: 100%;
+              padding: 1.5mm 2mm;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: space-between;
+              text-align: center;
+            }
+            .title { 
+              font-size: 9px; 
+              font-weight: 800; 
+              letter-spacing: 0.5px;
+              text-transform: uppercase;
+              line-height: 1;
+            }
+            .qr-container { 
+              display: flex; 
+              justify-content: center; 
+              align-items: center;
+              flex: 1;
+              margin: 1px 0;
+            }
+            .qr-container svg { 
+              width: 75px !important; 
+              height: 75px !important; 
+            }
+            .name { 
+              font-size: 10px; 
+              font-weight: bold; 
+              line-height: 1.1;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              max-width: 100%;
+            }
+            .details { 
+              font-size: 8px; 
+              font-weight: 600;
+              color: #222; 
+              line-height: 1;
+            }
+            .sku { 
+              font-size: 9px; 
+              font-family: 'Courier New', monospace; 
+              font-weight: 800; 
+              letter-spacing: 0.5px;
+              line-height: 1;
+            }
+            .qc { 
+              font-size: 7.5px; 
+              font-weight: 800; 
+              color: #16a34a; 
+              line-height: 1;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="title">TENZE INVENTORY</div>
+            <div class="qr-container">${qrSvgHtml}</div>
+            <div class="name">${product.name}</div>
+            <div class="details">${product.color} / ${product.size}</div>
+            <div class="sku">${product.sku}</div>
+            <div class="qc">QC PASSED</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.focus();
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `)
+    doc.close()
+
+    setTimeout(() => {
+      document.body.removeChild(iframe)
+    }, 1000)
   }
 
   return (
@@ -247,6 +369,16 @@ export default function QCInbound() {
           <li>• Klik "Cetak Label" untuk mencetak label thermal 50x30mm</li>
           <li>• Transaksi akan dicatat dalam audit trail inventaris</li>
         </ul>
+        
+        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-zinc-800">
+          <h4 className="font-semibold text-slate-900 dark:text-zinc-100 mb-2 text-sm">Tips Pengaturan Printer Thermal</h4>
+          <ul className="text-xs text-slate-600 dark:text-zinc-400 space-y-1">
+            <li>• Pilih printer thermal pada Destination (bukan Microsoft Print to PDF)</li>
+            <li>• Klik More settings → Paper size: 50mm x 30mm atau 2 x 1.2 inches</li>
+            <li>• Margins: None (Tanpa margin)</li>
+            <li>• Hilangkan centang Headers and footers untuk menghilangkan tanggal & URL</li>
+          </ul>
+        </div>
       </div>
 
       {/* Label Printing Modal */}
@@ -272,7 +404,7 @@ export default function QCInbound() {
               >
                 <div className="text-center">
                   <div className="text-xs font-bold text-slate-900 mb-1">TENZE INVENTORY</div>
-                  <div className="flex justify-center mb-2">
+                  <div className="flex justify-center mb-2" id="thermal-label-preview">
                     {selectedProductForLabel.sku ? (
                       <QRCode 
                         value={selectedProductForLabel.sku} 
@@ -304,10 +436,7 @@ export default function QCInbound() {
                   Batal
                 </button>
                 <button
-                  onClick={() => {
-                    setPrintLabelProduct(selectedProductForLabel)
-                    setTimeout(() => window.print(), 100)
-                  }}
+                  onClick={() => handlePrintLabel(selectedProductForLabel)}
                   className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
                   Cetak
@@ -318,24 +447,6 @@ export default function QCInbound() {
         </div>
       )}
 
-      {/* Isolated Print Container - Outside Modal Hierarchy */}
-      {printLabelProduct && (
-        <div id="single-label-print" style={{ display: 'none' }}>
-          <div className="text-center" style={{ padding: '2mm' }}>
-            <div className="text-xs font-bold" style={{ marginBottom: '1mm' }}>TENZE INVENTORY</div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2mm' }}>
-              <QRCode 
-                value={printLabelProduct.sku} 
-                size={60}
-              />
-            </div>
-            <div className="text-xs font-semibold" style={{ marginBottom: '0.5mm' }}>{printLabelProduct.name}</div>
-            <div className="text-xs" style={{ marginBottom: '0.5mm' }}>{printLabelProduct.color} / {printLabelProduct.size}</div>
-            <div className="text-xs font-mono">{printLabelProduct.sku}</div>
-            <div className="text-xs font-bold" style={{ marginTop: '1mm', color: '#16a34a' }}>QC PASSED</div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

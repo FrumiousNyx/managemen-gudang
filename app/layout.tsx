@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/navigation";
 import { ToastProvider } from "@/components/toast-provider";
+import { AuthProvider } from "@/contexts/auth-context";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -23,10 +24,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-slate-50 dark:bg-zinc-950">
-        <ToastProvider>
-          <Navigation />
-          <main className="flex-1">{children}</main>
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <Navigation />
+            <main className="flex-1">{children}</main>
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

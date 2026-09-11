@@ -31,11 +31,10 @@ export function Navigation() {
     return null
   }
 
-  // For now, show navigation even without auth (simple admin/admin login)
-  // When full Supabase auth is needed, uncomment the lines below:
-  // if (!loading && !user) {
-  //   return null
-  // }
+  // Don't show navigation if not authenticated (and not loading)
+  if (!loading && !user) {
+    return null
+  }
 
   // Show loading state while checking authentication
   if (loading) {

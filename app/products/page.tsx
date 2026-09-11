@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { useToast } from '@/components/toast-provider'
-import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search } from 'lucide-react'
+import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search, Download } from 'lucide-react'
 import QRCode from 'react-qr-code'
+import { exportToExcel, exportToCSV, formatProductDataForExport } from '@/lib/export-utils'
+import { TableSkeleton, CardSkeleton } from '@/components/skeleton'
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([])
@@ -58,6 +60,15 @@ export default function Products() {
     const searchTarget = `${product.sku} ${product.name} ${product.color} ${product.size}`.toLowerCase()
     return keywords.every((keyword) => searchTarget.includes(keyword))
   })
+
+  // Add loading state for initial load
+  const [initialLoading, setInitialLoading] = useState(true)
+
+  useEffect(() => {
+    if (products.length > 0 || !loading) {
+      setInitialLoading(false)
+    }
+  }, [products, loading])
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
@@ -224,6 +235,18 @@ export default function Products() {
     }
   }
 
+  const handleExportExcel = () => {
+    const exportData = formatProductDataForExport(sortedProducts)
+    exportToExcel(exportData, 'produk', 'Daftar Produk')
+    showToast('success', 'Data berhasil diexport ke Excel')
+  }
+
+  const handleExportCSV = () => {
+    const exportData = formatProductDataForExport(sortedProducts)
+    exportToCSV(exportData, 'produk')
+    showToast('success', 'Data berhasil diexport ke CSV')
+  }
+
   const handlePrintLabel = (product: Product) => {
     const iframe = document.createElement('iframe')
     iframe.style.position = 'fixed'
@@ -347,6 +370,18 @@ export default function Products() {
     }, 1000)
   }
 
+  if (initialLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <div className="h-8 w-48 bg-slate-200 dark:bg-zinc-800 rounded animate-pulse mb-2" />
+          <div className="h-4 w-64 bg-slate-200 dark:bg-zinc-800 rounded animate-pulse" />
+        </div>
+        <TableSkeleton rows={8} />
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -354,13 +389,29 @@ export default function Products() {
           <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Produk</h1>
           <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Kelola SKU produk dan informasi inventaris</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all w-full sm:w-auto"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Tambah SKU Baru
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center justify-center px-4 py-2 bg-emerald-600 dark:bg-emerald-500 text-white font-medium rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all flex-1 sm:flex-none"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Excel
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center justify-center px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all flex-1 sm:flex-none"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            CSV
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all flex-1 sm:flex-none"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Tambah SKU Baru
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}

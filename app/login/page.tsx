@@ -18,16 +18,6 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    // Simple hardcoded check for admin/admin
-    if (email === 'admin' && password === 'admin') {
-      // Allow login without Supabase for this specific case
-      setTimeout(() => {
-        router.push('/')
-      }, 500)
-      return
-    }
-
-    // For other users, use Supabase authentication
     const { error } = await signIn(email, password)
 
     if (error) {

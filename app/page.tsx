@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
+import { subscribeToProducts, unsubscribeFromChannel } from '@/lib/realtime'
 import { Search, Package, AlertTriangle, CheckCircle } from 'lucide-react'
+import { DashboardSkeleton } from '@/components/skeleton'
 
 export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([])
@@ -13,6 +15,17 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchProducts()
+
+    // Subscribe to real-time product updates
+    const subscription = subscribeToProducts(() => {
+      fetchProducts()
+    })
+
+    return () => {
+      if (subscription) {
+        unsubscribeFromChannel(subscription)
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -54,11 +67,7 @@ export default function Dashboard() {
   const lowStockCount = products.filter((p) => isLowStock(p)).length
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 dark:border-zinc-800 border-t-slate-900 dark:border-t-zinc-100"></div>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   return (

@@ -16,11 +16,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // For now, allow access without authentication (simple admin/admin login)
-  // When full Supabase auth is needed, uncomment the lines below:
-  // if (!isLoginPage && !hasSession) {
-  //   return NextResponse.redirect(new URL('/login', request.url))
-  // }
+  // If trying to access protected routes without authentication, redirect to login
+  if (!isLoginPage && !hasSession) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
 
   return NextResponse.next()
 }

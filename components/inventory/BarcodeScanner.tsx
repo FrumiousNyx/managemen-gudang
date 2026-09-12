@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { Camera, CameraOff, Scan, X } from 'lucide-react'
 
 interface BarcodeScannerProps {
@@ -51,20 +51,32 @@ export default function BarcodeScanner({ onScan, onClose, enabled = true }: Barc
     setErrorMessage('')
 
     try {
-      const config = {
-        fps: 10,
-        qrbox: { width: 400, height: 120 }, // Horizontal rectangle for 1D barcodes
-        aspectRatio: 3.33 // 3:1 ratio
+      // First get the camera devices
+      const devices = await Html5Qrcode.getCameras()
+      console.log('Available cameras:', devices)
+
+      if (devices && devices.length > 0) {
+        const config = {
+          fps: 10,
+          qrbox: { width: 400, height: 120 }, // Horizontal rectangle for 1D barcodes
+          aspectRatio: 3.33 // 3:1 ratio
+        }
+
+        // Use the back camera (last device in array is usually back camera)
+        const cameraId = devices[devices.length - 1].id
+
+        await scannerRef.current.start(
+          cameraId,
+          config,
+          handleScanSuccess,
+          handleScanFailure
+        )
+
+        setIsCameraActive(true)
+        console.log('Camera started successfully with ID:', cameraId)
+      } else {
+        throw new Error('No cameras found')
       }
-
-      await scannerRef.current.start(
-        { facingMode: "environment" },
-        config,
-        handleScanSuccess,
-        handleScanFailure
-      )
-
-      setIsCameraActive(true)
     } catch (error) {
       console.error('Camera start error:', error)
       setErrorMessage('Gagal mengakses kamera. Pastikan izin kamera diberikan.')

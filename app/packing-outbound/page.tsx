@@ -558,7 +558,7 @@ export default function PackingOutbound() {
       <div className="mt-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
-          <li>• <strong>Mode Kamera:</strong> Klik "Aktifkan Kamera" untuk pemindaian QR Code otomatis dengan kamera HP</li>
+          <li>• <strong>Mode Kamera:</strong> Klik "Aktifkan Kamera" untuk pemindaian barcode otomatis dengan kamera HP</li>
           <li>• <strong>Mode Manual:</strong> Gunakan pemindai barcode USB/Bluetooth atau ketik SKU manual</li>
           <li>• <strong>Mode Satu Pindai:</strong> Setiap pindai mengurangi 1 unit dari stok</li>
           <li>• <strong>Mode Banyak Pindai:</strong> Masukkan jumlah, lalu pindai untuk mengurangi banyak unit</li>

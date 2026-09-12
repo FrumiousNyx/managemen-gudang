@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
 import { ShoppingCart, Plus, Search, Printer, X } from 'lucide-react'
-import QRCode from 'react-qr-code'
+import JsBarcode from 'jsbarcode'
 
 export default function QCInbound() {
   const router = useRouter()
@@ -21,6 +21,27 @@ export default function QCInbound() {
   useEffect(() => {
     fetchProducts()
   }, [])
+
+  useEffect(() => {
+    if (isLabelModalOpen && selectedProductForLabel?.sku) {
+      // Generate barcode using jsbarcode
+      const canvas = document.getElementById(`barcode-${selectedProductForLabel.sku}`) as HTMLCanvasElement
+      if (canvas) {
+        JsBarcode(canvas, selectedProductForLabel.sku, {
+          format: 'CODE128',
+          width: 2,
+          height: 40,
+          displayValue: true,
+          fontSize: 10,
+          font: 'monospace',
+          textMargin: 2,
+          margin: 5,
+          background: '#ffffff',
+          lineColor: '#000000'
+        })
+      }
+    }
+  }, [isLabelModalOpen, selectedProductForLabel])
 
   const fetchProducts = async () => {
     if (!supabase) {
@@ -406,10 +427,14 @@ export default function QCInbound() {
                   <div className="text-xs font-bold text-slate-900 mb-1">TENZE INVENTORY</div>
                   <div className="flex justify-center mb-2" id="thermal-label-preview">
                     {selectedProductForLabel.sku ? (
-                      <QRCode 
-                        value={selectedProductForLabel.sku} 
-                        size={60}
-                      />
+                      <div className="text-center">
+                        <canvas
+                          id={`barcode-${selectedProductForLabel.sku}`}
+                          width={150}
+                          height={60}
+                          className="mx-auto"
+                        />
+                      </div>
                     ) : (
                       <div className="w-[60px] h-[60px] bg-slate-200 flex items-center justify-center text-xs text-slate-500">
                         No SKU

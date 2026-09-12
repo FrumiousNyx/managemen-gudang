@@ -5,7 +5,7 @@ import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { useToast } from '@/components/toast-provider'
 import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search } from 'lucide-react'
-import QRCode from 'react-qr-code'
+
 import BarcodeGenerator from '@/components/inventory/BarcodeGenerator'
 
 export default function Products() {

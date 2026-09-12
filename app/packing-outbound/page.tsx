@@ -6,7 +6,6 @@ import { Html5QrcodeScanner } from 'html5-qrcode'
 import { supabase, Product } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
 import { Scan, Package, AlertCircle, CheckCircle, XCircle, Layers, Zap, Camera, CameraOff, RotateCw } from 'lucide-react'
-import BarcodeScanner from '@/components/inventory/BarcodeScanner'
 
 type ScanMode = 'single' | 'bulk'
 
@@ -28,10 +27,48 @@ export default function PackingOutbound() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [lastScannedProduct, setLastScannedProduct] = useState<Product | null>(null)
   const [lastScannedQty, setLastScannedQty] = useState(0)
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
   const isProcessing = useRef(false)
   const { showToast } = useToast()
+
+  // Camera handling
+  useEffect(() => {
+    if (isCameraActive) {
+      const scanner = new Html5QrcodeScanner(
+        "reader",
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        },
+        false
+      )
+
+      scanner.render(
+        (decodedText: string) => {
+          handleCameraScan(decodedText)
+        },
+        (errorMessage: string) => {
+          // Scanning in progress...
+        }
+      )
+
+      scannerRef.current = scanner
+    } else {
+      if (scannerRef.current) {
+        scannerRef.current.clear()
+        scannerRef.current = null
+      }
+    }
+
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.clear()
+      }
+    }
+  }, [isCameraActive])
 
   // Auto-focus input when camera is off
   useEffect(() => {
@@ -105,6 +142,11 @@ export default function PackingOutbound() {
       return
     }
     
+    // Pause scanner immediately
+    if (scannerRef.current) {
+      scannerRef.current.pause(true)
+    }
+    
     isProcessing.current = true
     
     try {
@@ -132,6 +174,10 @@ export default function PackingOutbound() {
         playErrorSound()
         showToast('error', errorMsg)
         
+        // Resume scanner on error
+        if (scannerRef.current) {
+          scannerRef.current.resume()
+        }
         isProcessing.current = false
         return
       }
@@ -148,6 +194,10 @@ export default function PackingOutbound() {
         playErrorSound()
         showToast('error', 'Error mengambil detail produk')
         
+        // Resume scanner on error
+        if (scannerRef.current) {
+          scannerRef.current.resume()
+        }
         isProcessing.current = false
         return
       }
@@ -177,6 +227,9 @@ export default function PackingOutbound() {
       
       // Auto-resume scanner after 2 seconds
       setTimeout(() => {
+        if (scannerRef.current) {
+          scannerRef.current.resume()
+        }
         isProcessing.current = false
       }, 2000)
     } catch (error) {
@@ -185,6 +238,10 @@ export default function PackingOutbound() {
       playErrorSound()
       showToast('error', 'Error memproses pindai')
       
+      // Resume scanner on error
+      if (scannerRef.current) {
+        scannerRef.current.resume()
+      }
       isProcessing.current = false
     }
   }
@@ -310,6 +367,11 @@ export default function PackingOutbound() {
     setLastScannedQty(0)
     setBarcodeInput('')
     
+    // Resume scanner if camera is active
+    if (isCameraActive && scannerRef.current) {
+      scannerRef.current.resume()
+    }
+    
     isProcessing.current = false
     
     if (inputRef.current) inputRef.current.focus()
@@ -326,6 +388,12 @@ export default function PackingOutbound() {
     // Stop camera if active
     if (isCameraActive) {
       setIsCameraActive(false)
+    }
+    
+    // Clear scanner reference
+    if (scannerRef.current) {
+      scannerRef.current.clear()
+      scannerRef.current = null
     }
     
     // Reset scan mode
@@ -429,11 +497,9 @@ export default function PackingOutbound() {
 
           {isCameraActive ? (
             <div className="space-y-3">
-              <BarcodeScanner
-                onScan={handleCameraScan}
-                onClose={() => setIsCameraActive(false)}
-                enabled={isCameraActive}
-              />
+              <div className="bg-black rounded-xl overflow-hidden">
+                <div id="reader" className="w-full"></div>
+              </div>
               {scanMode === 'bulk' && (
                 <div className="flex items-center gap-3">
                   <label className="text-sm font-medium text-slate-700 dark:text-zinc-300 whitespace-nowrap">
@@ -486,7 +552,7 @@ export default function PackingOutbound() {
           <p className="mt-3 text-sm text-slate-500 dark:text-zinc-400">
             <Scan className="inline h-4 w-4 mr-1" />
             {isCameraActive 
-              ? 'Mode Kamera: Arahkan kamera ke barcode 1D pada label untuk pemindaian otomatis.'
+              ? 'Mode Kamera: Arahkan kamera ke QR Code pada polybag untuk pemindaian otomatis.'
               : 'Mode Manual: Gunakan pemindai barcode USB/Bluetooth atau ketik SKU manual.'}
             {scanMode === 'single' 
               ? ' Setiap pindai mengurangi 1 unit dari stok.'
@@ -558,7 +624,7 @@ export default function PackingOutbound() {
       <div className="mt-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
-          <li>• <strong>Mode Kamera:</strong> Klik "Aktifkan Kamera" untuk pemindaian barcode otomatis dengan kamera HP</li>
+          <li>• <strong>Mode Kamera:</strong> Klik "Aktifkan Kamera" untuk pemindaian QR Code otomatis dengan kamera HP</li>
           <li>• <strong>Mode Manual:</strong> Gunakan pemindai barcode USB/Bluetooth atau ketik SKU manual</li>
           <li>• <strong>Mode Satu Pindai:</strong> Setiap pindai mengurangi 1 unit dari stok</li>
           <li>• <strong>Mode Banyak Pindai:</strong> Masukkan jumlah, lalu pindai untuk mengurangi banyak unit</li>

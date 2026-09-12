@@ -5,8 +5,7 @@ import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { useToast } from '@/components/toast-provider'
 import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search } from 'lucide-react'
-
-import BarcodeGenerator from '@/components/inventory/BarcodeGenerator'
+import QRCode from 'react-qr-code'
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([])
@@ -685,20 +684,6 @@ export default function Products() {
                 <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
                   Ini akan digunakan sebagai pengenal barcode untuk pemindaian
                 </p>
-                
-                {/* Live Barcode Preview */}
-                {formData.sku && (
-                  <div className="mt-4">
-                    <BarcodeGenerator
-                      value={formData.sku}
-                      productName={formData.name}
-                      color={formData.color}
-                      size={formData.size}
-                      showPreview={true}
-                      className="text-sm"
-                    />
-                  </div>
-                )}
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -825,19 +810,36 @@ export default function Products() {
             </div>
             
             <div className="p-6">
-              {/* Label Preview - Barcode */}
-              <BarcodeGenerator
-                value={selectedProductForLabel.sku}
-                productName={selectedProductForLabel.name}
-                color={selectedProductForLabel.color}
-                size={selectedProductForLabel.size}
-                showPreview={true}
-                className="mb-4"
-              />
+              {/* Label Preview - 50x30mm */}
+              <div 
+                id="thermal-label-print"
+                className="bg-white border-2 border-slate-300 rounded-lg p-3 mx-auto" 
+                style={{ width: '300px', height: '180px' }}
+              >
+                <div className="text-center">
+                  <div className="text-xs font-bold text-slate-900 mb-1">TENZE INVENTORY</div>
+                  <div className="flex justify-center mb-2" id="thermal-label-preview">
+                    {selectedProductForLabel.sku ? (
+                      <QRCode 
+                        value={selectedProductForLabel.sku} 
+                        size={60}
+                      />
+                    ) : (
+                      <div className="w-[60px] h-[60px] bg-slate-200 flex items-center justify-center text-xs text-slate-500">
+                        No SKU
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs font-semibold text-slate-900 mb-0.5">{selectedProductForLabel.name}</div>
+                  <div className="text-xs text-slate-600 mb-0.5">{selectedProductForLabel.color} / {selectedProductForLabel.size}</div>
+                  <div className="text-xs font-mono text-slate-800">{selectedProductForLabel.sku}</div>
+                  <div className="text-xs font-bold text-emerald-600 mt-1">QC PASSED</div>
+                </div>
+              </div>
               
               <div className="mt-4 text-center text-sm text-slate-500 dark:text-zinc-400">
-                <p>Preview label dengan barcode Code 128</p>
-                <p className="text-xs mt-1">Gunakan tombol Print untuk cetak label thermal</p>
+                <p>Preview label ukuran 50x30mm</p>
+                <p className="text-xs mt-1">Klik cetak untuk mengirim ke printer thermal</p>
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -848,10 +850,10 @@ export default function Products() {
                   Batal
                 </button>
                 <button
-                  onClick={() => setIsLabelModalOpen(false)}
+                  onClick={() => handlePrintLabel(selectedProductForLabel)}
                   className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
-                  Selesai
+                  Cetak
                 </button>
               </div>
             </div>

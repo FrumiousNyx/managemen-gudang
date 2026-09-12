@@ -5,20 +5,22 @@ export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
   const isLoginPage = path === '/login'
   
-  // Get session cookie
+  // Get Supabase session tokens from cookies
   const accessToken = request.cookies.get('sb-access-token')
+  const refreshToken = request.cookies.get('sb-refresh-token')
 
-  const hasSession = accessToken?.value === 'admin'
+  const hasSession = accessToken && refreshToken
 
   // If trying to access login page while already authenticated, redirect to home
   if (isLoginPage && hasSession) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // Require authentication for all pages except login
-  if (!isLoginPage && !hasSession) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
+  // For now, allow access without authentication (simple admin/admin login)
+  // When full Supabase auth is needed, uncomment the lines below:
+  // if (!isLoginPage && !hasSession) {
+  //   return NextResponse.redirect(new URL('/login', request.url))
+  // }
 
   return NextResponse.next()
 }

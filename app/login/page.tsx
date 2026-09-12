@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/auth-context'
 import { Lock, Mail, AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [username, setUsername] = useState('admin')
-  const [password, setPassword] = useState('admin')
+  const { signIn } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -17,19 +19,23 @@ export default function LoginPage() {
     setLoading(true)
 
     // Simple hardcoded check for admin/admin
-    if (username === 'admin' && password === 'admin') {
-      // Set a simple session cookie to indicate authenticated state
-      document.cookie = 'sb-access-token=admin; path=/; max-age=86400'
-      document.cookie = 'sb-refresh-token=admin; path=/; max-age=86400'
-      
+    if (email === 'admin' && password === 'admin') {
+      // Allow login without Supabase for this specific case
       setTimeout(() => {
         router.push('/')
       }, 500)
       return
     }
 
-    setError('Username atau password salah')
-    setLoading(false)
+    // For other users, use Supabase authentication
+    const { error } = await signIn(email, password)
+
+    if (error) {
+      setError(error.message || 'Login gagal')
+      setLoading(false)
+    } else {
+      router.push('/')
+    }
   }
 
   return (
@@ -50,16 +56,16 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
-                Username
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+                Email / Username
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <input
-                  id="username"
+                  id="email"
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                   placeholder="admin"
                   required

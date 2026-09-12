@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { useToast } from '@/components/toast-provider'
-import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search, Download } from 'lucide-react'
+import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search } from 'lucide-react'
 import QRCode from 'react-qr-code'
-import { exportToExcel, exportToCSV, formatProductDataForExport } from '@/lib/export-utils'
-import { TableSkeleton, CardSkeleton } from '@/components/skeleton'
+import BarcodeGenerator from '@/components/inventory/BarcodeGenerator'
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([])
@@ -60,15 +59,6 @@ export default function Products() {
     const searchTarget = `${product.sku} ${product.name} ${product.color} ${product.size}`.toLowerCase()
     return keywords.every((keyword) => searchTarget.includes(keyword))
   })
-
-  // Add loading state for initial load
-  const [initialLoading, setInitialLoading] = useState(true)
-
-  useEffect(() => {
-    if (products.length > 0 || !loading) {
-      setInitialLoading(false)
-    }
-  }, [products, loading])
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
@@ -235,18 +225,6 @@ export default function Products() {
     }
   }
 
-  const handleExportExcel = () => {
-    const exportData = formatProductDataForExport(sortedProducts)
-    exportToExcel(exportData, 'produk', 'Daftar Produk')
-    showToast('success', 'Data berhasil diexport ke Excel')
-  }
-
-  const handleExportCSV = () => {
-    const exportData = formatProductDataForExport(sortedProducts)
-    exportToCSV(exportData, 'produk')
-    showToast('success', 'Data berhasil diexport ke CSV')
-  }
-
   const handlePrintLabel = (product: Product) => {
     const iframe = document.createElement('iframe')
     iframe.style.position = 'fixed'
@@ -370,18 +348,6 @@ export default function Products() {
     }, 1000)
   }
 
-  if (initialLoading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="h-8 w-48 bg-slate-200 dark:bg-zinc-800 rounded animate-pulse mb-2" />
-          <div className="h-4 w-64 bg-slate-200 dark:bg-zinc-800 rounded animate-pulse" />
-        </div>
-        <TableSkeleton rows={8} />
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -389,29 +355,13 @@ export default function Products() {
           <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Produk</h1>
           <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Kelola SKU produk dan informasi inventaris</p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center justify-center px-4 py-2 bg-emerald-600 dark:bg-emerald-500 text-white font-medium rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all flex-1 sm:flex-none"
-          >
-            <Download className="h-5 w-5 mr-2" />
-            Excel
-          </button>
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center justify-center px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all flex-1 sm:flex-none"
-          >
-            <Download className="h-5 w-5 mr-2" />
-            CSV
-          </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all flex-1 sm:flex-none"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Tambah SKU Baru
-          </button>
-        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all w-full sm:w-auto"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Tambah SKU Baru
+        </button>
       </div>
 
       {/* Search Bar */}
@@ -735,6 +685,20 @@ export default function Products() {
                 <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
                   Ini akan digunakan sebagai pengenal barcode untuk pemindaian
                 </p>
+                
+                {/* Live Barcode Preview */}
+                {formData.sku && (
+                  <div className="mt-4">
+                    <BarcodeGenerator
+                      value={formData.sku}
+                      productName={formData.name}
+                      color={formData.color}
+                      size={formData.size}
+                      showPreview={true}
+                      className="text-sm"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -861,36 +825,19 @@ export default function Products() {
             </div>
             
             <div className="p-6">
-              {/* Label Preview - 50x30mm */}
-              <div 
-                id="thermal-label-print"
-                className="bg-white border-2 border-slate-300 rounded-lg p-3 mx-auto" 
-                style={{ width: '300px', height: '180px' }}
-              >
-                <div className="text-center">
-                  <div className="text-xs font-bold text-slate-900 mb-1">TENZE INVENTORY</div>
-                  <div className="flex justify-center mb-2" id="thermal-label-preview">
-                    {selectedProductForLabel.sku ? (
-                      <QRCode 
-                        value={selectedProductForLabel.sku} 
-                        size={60}
-                      />
-                    ) : (
-                      <div className="w-[60px] h-[60px] bg-slate-200 flex items-center justify-center text-xs text-slate-500">
-                        No SKU
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-xs font-semibold text-slate-900 mb-0.5">{selectedProductForLabel.name}</div>
-                  <div className="text-xs text-slate-600 mb-0.5">{selectedProductForLabel.color} / {selectedProductForLabel.size}</div>
-                  <div className="text-xs font-mono text-slate-800">{selectedProductForLabel.sku}</div>
-                  <div className="text-xs font-bold text-emerald-600 mt-1">QC PASSED</div>
-                </div>
-              </div>
+              {/* Label Preview - Barcode */}
+              <BarcodeGenerator
+                value={selectedProductForLabel.sku}
+                productName={selectedProductForLabel.name}
+                color={selectedProductForLabel.color}
+                size={selectedProductForLabel.size}
+                showPreview={true}
+                className="mb-4"
+              />
               
               <div className="mt-4 text-center text-sm text-slate-500 dark:text-zinc-400">
-                <p>Preview label ukuran 50x30mm</p>
-                <p className="text-xs mt-1">Klik cetak untuk mengirim ke printer thermal</p>
+                <p>Preview label dengan barcode Code 128</p>
+                <p className="text-xs mt-1">Gunakan tombol Print untuk cetak label thermal</p>
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -901,10 +848,10 @@ export default function Products() {
                   Batal
                 </button>
                 <button
-                  onClick={() => handlePrintLabel(selectedProductForLabel)}
+                  onClick={() => setIsLabelModalOpen(false)}
                   className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
-                  Cetak
+                  Selesai
                 </button>
               </div>
             </div>

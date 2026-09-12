@@ -5,18 +5,17 @@ export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
   const isLoginPage = path === '/login'
   
-  // Get Supabase session tokens from cookies
+  // Get session cookie
   const accessToken = request.cookies.get('sb-access-token')
-  const refreshToken = request.cookies.get('sb-refresh-token')
 
-  const hasSession = accessToken && refreshToken
+  const hasSession = accessToken?.value === 'admin'
 
   // If trying to access login page while already authenticated, redirect to home
   if (isLoginPage && hasSession) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // If trying to access protected routes without authentication, redirect to login
+  // Require authentication for all pages except login
   if (!isLoginPage && !hasSession) {
     return NextResponse.redirect(new URL('/login', request.url))
   }

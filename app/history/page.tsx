@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
-import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar, Trash2, AlertTriangle, Download } from 'lucide-react'
-import { exportToExcel, exportToCSV, formatLogDataForExport } from '@/lib/export-utils'
-import { TableSkeleton } from '@/components/skeleton'
+import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar, Trash2, AlertTriangle } from 'lucide-react'
 
 interface InventoryLog {
   id: string
@@ -153,18 +151,6 @@ export default function History() {
     }
   }
 
-  const handleExportExcel = () => {
-    const exportData = formatLogDataForExport(logs)
-    exportToExcel(exportData, 'riwayat_inventaris', 'Riwayat Transaksi')
-    showToast('success', 'Riwayat berhasil diexport ke Excel')
-  }
-
-  const handleExportCSV = () => {
-    const exportData = formatLogDataForExport(logs)
-    exportToCSV(exportData, 'riwayat_inventaris')
-    showToast('success', 'Riwayat berhasil diexport ke CSV')
-  }
-
   const getLogTypeLabel = (type: string) => {
     switch (type) {
       case 'INBOUND_QC':
@@ -213,29 +199,13 @@ export default function History() {
               <Filter className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
               <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Filter</h2>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleExportExcel}
-                className="flex items-center px-3 py-2 text-sm bg-emerald-600 dark:bg-emerald-500 text-white rounded-lg hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Excel
-              </button>
-              <button
-                onClick={handleExportCSV}
-                className="flex items-center px-3 py-2 text-sm bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                CSV
-              </button>
-              <button
-                onClick={() => setShowClearConfirm(true)}
-                className="flex items-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Bersihkan History
-              </button>
-            </div>
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className="flex items-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Bersihkan History
+            </button>
           </div>
           
           {/* Type Filter */}
@@ -317,8 +287,9 @@ export default function History() {
       {/* Logs List */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
         {loading ? (
-          <div className="p-6">
-            <TableSkeleton rows={5} />
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 dark:border-zinc-700 border-t-slate-900 dark:border-t-zinc-100 mx-auto"></div>
+            <p className="mt-4 text-slate-600 dark:text-zinc-400">Memuat riwayat...</p>
           </div>
         ) : logs.length === 0 ? (
           <div className="p-8 text-center">

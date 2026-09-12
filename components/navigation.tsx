@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Package, Scan, ShoppingCart, BarChart3, Menu, X, Clock, TrendingUp, LogOut } from "lucide-react"
+import { Package, Scan, ShoppingCart, BarChart3, Menu, X, Clock, TrendingUp, LogOut, Store } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 
 export function Navigation() {
@@ -19,6 +19,8 @@ export function Navigation() {
     { href: "/history", label: "Riwayat", icon: Clock },
     { href: "/analytics", label: "Analitik", icon: TrendingUp },
     { href: "/products", label: "Produk", icon: Package },
+    // TODO: Uncomment when marketplace integration is ready
+    // { href: "/settings/marketplace", label: "Marketplace", icon: Store },
   ]
 
   const handleLogout = async () => {
@@ -31,10 +33,11 @@ export function Navigation() {
     return null
   }
 
-  // Don't show navigation if not authenticated (and not loading)
-  if (!loading && !user) {
-    return null
-  }
+  // For now, show navigation even without auth (simple admin/admin login)
+  // When full Supabase auth is needed, uncomment the lines below:
+  // if (!loading && !user) {
+  //   return null
+  // }
 
   // Show loading state while checking authentication
   if (loading) {

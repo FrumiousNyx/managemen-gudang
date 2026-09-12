@@ -14,7 +14,7 @@ export type Product = {
   color: string
   size: string
   stock: number
-  created_at: string
+  created_at?: string
 }
 
 export type InventoryLog = {

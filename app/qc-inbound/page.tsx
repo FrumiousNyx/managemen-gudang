@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase, Product } from '@/lib/supabase'
+import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
 import { ShoppingCart, Plus, Search, Printer, X } from 'lucide-react'
 import QRCode from 'react-qr-code'
@@ -30,13 +31,25 @@ export default function QCInbound() {
     }
 
     try {
+      // Try to get from cache first
+      const cachedData = cache.get(CACHE_KEYS.PRODUCTS)
+      if (cachedData) {
+        setProducts(cachedData)
+        return
+      }
+
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('name', { ascending: true })
 
       if (error) throw error
-      setProducts(data || [])
+      
+      const products = data || []
+      setProducts(products)
+      
+      // Cache the results for 5 minutes
+      cache.set(CACHE_KEYS.PRODUCTS, products, 5 * 60 * 1000)
     } catch (error) {
       console.error('Error fetching products:', error)
       showToast('error', 'Gagal memuat produk')
@@ -94,6 +107,9 @@ export default function QCInbound() {
       if (logError) throw logError
 
       showToast('success', `Berhasil menambahkan ${qty} unit ke ${selectedProduct.name}`)
+      
+      // Clear cache to force refresh
+      cache.delete(CACHE_KEYS.PRODUCTS)
       
       // Reset form
       setSelectedProduct(null)
@@ -154,26 +170,18 @@ export default function QCInbound() {
             .container {
               width: 100%;
               height: 100%;
-              padding: 1.5mm 2mm;
+              padding: 2mm 2mm;
               display: flex;
               flex-direction: column;
               align-items: center;
-              justify-content: space-between;
+              justify-content: center;
               text-align: center;
-            }
-            .title { 
-              font-size: 9px; 
-              font-weight: 800; 
-              letter-spacing: 0.5px;
-              text-transform: uppercase;
-              line-height: 1;
             }
             .qr-container { 
               display: flex; 
               justify-content: center; 
               align-items: center;
-              flex: 1;
-              margin: 1px 0;
+              margin: 2px 0;
             }
             .qr-container svg { 
               width: 75px !important; 
@@ -201,22 +209,14 @@ export default function QCInbound() {
               letter-spacing: 0.5px;
               line-height: 1;
             }
-            .qc { 
-              font-size: 7.5px; 
-              font-weight: 800; 
-              color: #16a34a; 
-              line-height: 1;
-            }
           </style>
         </head>
         <body>
           <div class="container">
-            <div class="title">TENZE INVENTORY</div>
             <div class="qr-container">${qrSvgHtml}</div>
             <div class="name">${product.name}</div>
             <div class="details">${product.color} / ${product.size}</div>
             <div class="sku">${product.sku}</div>
-            <div class="qc">QC PASSED</div>
           </div>
           <script>
             window.onload = function() {
@@ -403,7 +403,6 @@ export default function QCInbound() {
                 style={{ width: '300px', height: '180px' }}
               >
                 <div className="text-center">
-                  <div className="text-xs font-bold text-slate-900 mb-1">TENZE INVENTORY</div>
                   <div className="flex justify-center mb-2" id="thermal-label-preview">
                     {selectedProductForLabel.sku ? (
                       <QRCode 
@@ -419,7 +418,6 @@ export default function QCInbound() {
                   <div className="text-xs font-semibold text-slate-900 mb-0.5">{selectedProductForLabel.name}</div>
                   <div className="text-xs text-slate-600 mb-0.5">{selectedProductForLabel.color} / {selectedProductForLabel.size}</div>
                   <div className="text-xs font-mono text-slate-800">{selectedProductForLabel.sku}</div>
-                  <div className="text-xs font-bold text-emerald-600 mt-1">QC PASSED</div>
                 </div>
               </div>
               

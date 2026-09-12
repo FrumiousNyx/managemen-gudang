@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
-import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar, Trash2, AlertTriangle } from 'lucide-react'
+import { Skeleton } from '@/components/skeleton'
+import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar, Trash2, AlertTriangle, Download } from 'lucide-react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 interface InventoryLog {
   id: string
@@ -47,6 +51,17 @@ export default function History() {
     setCurrentPage(1) // Reset to page 1 when filters change
 
     try {
+      // Create cache key based on filters
+      const cacheKey = `${CACHE_KEYS.INVENTORY_LOGS}_${filter}_${startDate}_${endDate}`
+      
+      // Try to get from cache first
+      const cachedData = cache.get(cacheKey)
+      if (cachedData) {
+        setLogs(cachedData)
+        setLoading(false)
+        return
+      }
+
       let query = supabase
         .from('inventory_logs')
         .select(`
@@ -76,7 +91,11 @@ export default function History() {
 
       if (error) throw error
 
-      setLogs(data || [])
+      const logs = data || []
+      setLogs(logs)
+      
+      // Cache the results for 3 minutes
+      cache.set(cacheKey, logs, 3 * 60 * 1000)
     } catch (error) {
       console.error('Error fetching logs:', error)
       showToast('error', 'Gagal memuat riwayat')
@@ -139,6 +158,9 @@ export default function History() {
 
       if (error) throw error
 
+      // Clear all inventory logs cache
+      cache.clear()
+      
       showToast('success', 'Riwayat berhasil dihapus')
       setLogs([])
       setCurrentPage(1)
@@ -184,6 +206,86 @@ export default function History() {
     }
   }
 
+  const exportToPDF = () => {
+    const doc = new jsPDF()
+    
+    // Title
+    doc.setFontSize(18)
+    doc.text('Riwayat Inventaris', 14, 22)
+    
+    // Filter info
+    doc.setFontSize(10)
+    doc.setTextColor(100)
+    const filterText = filter === 'all' ? 'Semua Transaksi' : 
+                       filter === 'inbound' ? 'Barang Masuk' : 'Barang Keluar'
+    doc.text(`Filter: ${filterText}`, 14, 30)
+    
+    if (startDate || endDate) {
+      const dateRange = startDate && endDate ? 
+        `${startDate} - ${endDate}` : 
+        startDate || endDate
+      doc.text(`Tanggal: ${dateRange}`, 14, 36)
+    }
+    
+    doc.text(`Total: ${logs.length} transaksi`, 14, 42)
+    
+    // Table
+    const tableData = logs.map(log => [
+      formatDate(log.created_at),
+      getLogTypeLabel(log.type),
+      log.product?.name || '-',
+      log.product?.sku || '-',
+      log.product?.color || '-',
+      log.product?.size || '-',
+      log.qty > 0 ? `+${log.qty}` : log.qty,
+      log.notes || '-'
+    ])
+    
+    autoTable(doc, {
+      startY: 50,
+      head: [['Tanggal', 'Tipe', 'Nama Produk', 'SKU', 'Warna', 'Ukuran', 'Qty', 'Catatan']],
+      body: tableData,
+      styles: {
+        fontSize: 8,
+        cellPadding: 3
+      },
+      headStyles: {
+        fillColor: [71, 85, 105],
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      columnStyles: {
+        0: { cellWidth: 35 },
+        1: { cellWidth: 25 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 15 },
+        6: { cellWidth: 15 },
+        7: { cellWidth: 40 }
+      }
+    })
+    
+    // Footer
+    const pageCount = doc.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(150)
+      doc.text(
+        `Halaman ${i} dari ${pageCount} - Generated on ${new Date().toLocaleDateString('id-ID')}`,
+        14,
+        doc.internal.pageSize.height - 10
+      )
+    }
+    
+    doc.save(`riwayat-inventaris-${new Date().toISOString().split('T')[0]}.pdf`)
+    showToast('success', 'PDF berhasil di-download')
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
@@ -199,13 +301,23 @@ export default function History() {
               <Filter className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
               <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Filter</h2>
             </div>
-            <button
-              onClick={() => setShowClearConfirm(true)}
-              className="flex items-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Bersihkan History
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={exportToPDF}
+                disabled={logs.length === 0}
+                className="flex items-center px-3 py-2 text-sm bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Export PDF
+              </button>
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                className="flex items-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Bersihkan History
+              </button>
+            </div>
           </div>
           
           {/* Type Filter */}
@@ -287,9 +399,32 @@ export default function History() {
       {/* Logs List */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 dark:border-zinc-700 border-t-slate-900 dark:border-t-zinc-100 mx-auto"></div>
-            <p className="mt-4 text-slate-600 dark:text-zinc-400">Memuat riwayat...</p>
+          <div className="p-6">
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="p-6 border-b border-slate-200 dark:border-zinc-800">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Skeleton className="h-8 w-28 rounded-full" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-full" />
+                      </div>
+                      <Skeleton className="h-4 w-full mt-3" />
+                    </div>
+                    <div className="text-right">
+                      <Skeleton className="h-8 w-16" />
+                      <Skeleton className="h-4 w-12 mt-1" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : logs.length === 0 ? (
           <div className="p-8 text-center">

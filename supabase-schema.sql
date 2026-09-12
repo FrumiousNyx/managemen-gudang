@@ -25,9 +25,13 @@ CREATE TABLE IF NOT EXISTS inventory_logs (
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
 CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
+CREATE INDEX IF NOT EXISTS idx_products_stock ON products(stock);
+CREATE INDEX IF NOT EXISTS idx_products_name_color_size ON products(name, color, size);
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_product_id ON inventory_logs(product_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_type ON inventory_logs(type);
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_created_at ON inventory_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_inventory_logs_type_created_at ON inventory_logs(type, created_at);
+CREATE INDEX IF NOT EXISTS idx_inventory_logs_product_created_at ON inventory_logs(product_id, created_at);
 
 -- Create a function to update product stock and log the transaction
 CREATE OR REPLACE FUNCTION update_stock_with_log(

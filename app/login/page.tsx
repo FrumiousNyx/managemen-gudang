@@ -18,9 +18,18 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    // Simple hardcoded check for admin/admin
-    if (email === 'admin' && password === 'admin') {
-      // Allow login without Supabase for this specific case
+    // Check admin credentials from environment variables
+    const adminUsername = process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin'
+    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin'
+
+    if (email === adminUsername && password === adminPassword) {
+      // Store admin session in localStorage and cookie
+      localStorage.setItem('admin_session', 'true')
+      localStorage.setItem('admin_timestamp', Date.now().toString())
+      
+      // Set cookie for middleware
+      document.cookie = 'admin_session=true; path=/; max-age=86400' // 24 hours
+      
       setTimeout(() => {
         router.push('/')
       }, 500)

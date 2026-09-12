@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
-import { TrendingUp, Package, Calendar, BarChart3, ArrowUp } from 'lucide-react'
+import { CardSkeleton, Skeleton } from '@/components/skeleton'
+import { TrendingUp, Package, Calendar, BarChart3, ArrowUp, Download } from 'lucide-react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 interface InventoryLog {
   id: string
@@ -48,6 +52,15 @@ export default function Analytics() {
 
     setLoading(true)
     try {
+      // Try to get from cache first
+      const cachedData = cache.get(CACHE_KEYS.ANALYTICS_LOGS)
+      if (cachedData) {
+        setLogs(cachedData)
+        setFilteredLogs(cachedData)
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase
         .from('inventory_logs')
         .select(`
@@ -58,8 +71,13 @@ export default function Analytics() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setLogs(data || [])
-      setFilteredLogs(data || [])
+      
+      const logs = data || []
+      setLogs(logs)
+      setFilteredLogs(logs)
+      
+      // Cache the results for 3 minutes (analytics data changes more frequently)
+      cache.set(CACHE_KEYS.ANALYTICS_LOGS, logs, 3 * 60 * 1000)
     } catch (error) {
       console.error('Error fetching logs:', error)
       showToast('error', 'Gagal memuat data analitik')
@@ -178,10 +196,185 @@ export default function Analytics() {
   const colorBreakdown = getColorBreakdown()
   const sizeBreakdown = getSizeBreakdown()
 
+  const exportToPDF = () => {
+    const doc = new jsPDF()
+    
+    // Title
+    doc.setFontSize(18)
+    doc.text('Analitik Penjualan', 14, 22)
+    
+    // Filter info
+    doc.setFontSize(10)
+    doc.setTextColor(100)
+    if (startDate && endDate) {
+      doc.text(`Periode: ${startDate} - ${endDate}`, 14, 30)
+    } else {
+      doc.text('Periode: Semua Data', 14, 30)
+    }
+    
+    // Summary
+    doc.setFontSize(12)
+    doc.setTextColor(0)
+    doc.text('Ringkasan Penjualan', 14, 42)
+    
+    const summaryData = [
+      ['Hari Ini', getTodaySales().toString()],
+      ['Minggu Ini', getWeekSales().toString()],
+      ['Bulan Ini', getMonthSales().toString()]
+    ]
+    
+    autoTable(doc, {
+      startY: 48,
+      head: [['Periode', 'Unit']],
+      body: summaryData,
+      styles: {
+        fontSize: 10,
+        cellPadding: 3
+      },
+      headStyles: {
+        fillColor: [71, 85, 105],
+        textColor: 255,
+        fontStyle: 'bold'
+      }
+    })
+    
+    // Top Products
+    let startY = (doc as any).lastAutoTable.finalY + 15
+    doc.setFontSize(12)
+    doc.text('Top 5 Produk Terlaris', 14, startY)
+    
+    const topProductsData = topProducts.map((product, index) => [
+      `${index + 1}`,
+      product.product_name,
+      product.product_sku,
+      `${product.color} / ${product.size}`,
+      product.total_qty.toString()
+    ])
+    
+    autoTable(doc, {
+      startY: startY + 6,
+      head: [['Rank', 'Nama', 'SKU', 'Detail', 'Unit']],
+      body: topProductsData,
+      styles: {
+        fontSize: 8,
+        cellPadding: 3
+      },
+      headStyles: {
+        fillColor: [71, 85, 105],
+        textColor: 255,
+        fontStyle: 'bold'
+      }
+    })
+    
+    // Color Breakdown
+    startY = (doc as any).lastAutoTable.finalY + 15
+    doc.setFontSize(12)
+    doc.text('Breakdown Warna', 14, startY)
+    
+    const colorData = colorBreakdown.map(([color, qty]) => {
+      const totalSales = filteredLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
+      const percentage = totalSales > 0 ? ((qty / totalSales) * 100).toFixed(1) : '0'
+      return [color, qty.toString(), `${percentage}%`]
+    })
+    
+    autoTable(doc, {
+      startY: startY + 6,
+      head: [['Warna', 'Unit', 'Persentase']],
+      body: colorData,
+      styles: {
+        fontSize: 9,
+        cellPadding: 3
+      },
+      headStyles: {
+        fillColor: [71, 85, 105],
+        textColor: 255,
+        fontStyle: 'bold'
+      }
+    })
+    
+    // Size Breakdown
+    startY = (doc as any).lastAutoTable.finalY + 15
+    doc.setFontSize(12)
+    doc.text('Breakdown Ukuran', 14, startY)
+    
+    const sizeData = sizeBreakdown.map(([size, qty]) => [size, qty.toString()])
+    
+    autoTable(doc, {
+      startY: startY + 6,
+      head: [['Ukuran', 'Unit']],
+      body: sizeData,
+      styles: {
+        fontSize: 9,
+        cellPadding: 3
+      },
+      headStyles: {
+        fillColor: [71, 85, 105],
+        textColor: 255,
+        fontStyle: 'bold'
+      }
+    })
+    
+    // Footer
+    const pageCount = doc.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(150)
+      doc.text(
+        `Halaman ${i} dari ${pageCount} - Generated on ${new Date().toLocaleDateString('id-ID')}`,
+        14,
+        doc.internal.pageSize.height - 10
+      )
+    }
+    
+    doc.save(`analitik-penjualan-${new Date().toISOString().split('T')[0]}.pdf`)
+    showToast('success', 'PDF analitik berhasil di-download')
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 dark:border-zinc-800 border-t-slate-900 dark:border-t-zinc-100"></div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+
+        {/* Date Range Filter Skeleton */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-8">
+          <Skeleton className="h-6 w-32 mb-4" />
+          <div className="flex gap-4">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </div>
+
+        {/* Sales Summary Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+            <Skeleton className="h-6 w-48 mb-6" />
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          </div>
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+            <Skeleton className="h-6 w-48 mb-6" />
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -195,7 +388,17 @@ export default function Analytics() {
 
       {/* Date Range Filter */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-8">
-        <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-4">Filter Tanggal</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-900 dark:text-zinc-100">Filter Tanggal</h3>
+          <button
+            onClick={exportToPDF}
+            disabled={filteredLogs.length === 0}
+            className="flex items-center px-3 py-2 text-sm bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Export PDF
+          </button>
+        </div>
         <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="flex-1">
             <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">

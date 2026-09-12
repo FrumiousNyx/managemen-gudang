@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
+import { cache, CACHE_KEYS } from '@/lib/cache'
+import { CardSkeleton, TableSkeleton, ProductCardSkeleton, Skeleton } from '@/components/skeleton'
 import { Search, Package, AlertTriangle, CheckCircle } from 'lucide-react'
 
 export default function Dashboard() {
@@ -34,14 +36,28 @@ export default function Dashboard() {
     }
 
     try {
+      // Try to get from cache first
+      const cachedData = cache.get(CACHE_KEYS.PRODUCTS)
+      if (cachedData) {
+        setProducts(cachedData)
+        setFilteredProducts(cachedData)
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('name', { ascending: true })
 
       if (error) throw error
-      setProducts(data || [])
-      setFilteredProducts(data || [])
+      
+      const products = data || []
+      setProducts(products)
+      setFilteredProducts(products)
+      
+      // Cache the results for 5 minutes
+      cache.set(CACHE_KEYS.PRODUCTS, products, 5 * 60 * 1000)
     } catch (error) {
       console.error('Error fetching products:', error)
     } finally {
@@ -55,8 +71,35 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 dark:border-zinc-800 border-t-slate-900 dark:border-t-zinc-100"></div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+
+        {/* Metric Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+
+        {/* Search Bar Skeleton */}
+        <div className="mb-6">
+          <Skeleton className="h-12 w-full rounded-xl" />
+        </div>
+
+        {/* Table Skeleton - Desktop */}
+        <div className="hidden md:block">
+          <TableSkeleton rows={8} />
+        </div>
+
+        {/* Mobile Cards Skeleton */}
+        <div className="md:hidden space-y-3">
+          <ProductCardSkeleton />
+          <ProductCardSkeleton />
+          <ProductCardSkeleton />
+        </div>
       </div>
     )
   }

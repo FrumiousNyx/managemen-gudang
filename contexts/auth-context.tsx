@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
+  isAdmin: boolean
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
 }
@@ -18,8 +19,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
+    // Check for admin session in localStorage
+    const adminSession = localStorage.getItem('admin_session')
+    const adminTimestamp = localStorage.getItem('admin_timestamp')
+    
+    // Check if admin session is valid (24 hours)
+    if (adminSession === 'true' && adminTimestamp) {
+      const timestamp = parseInt(adminTimestamp)
+      const hoursSinceLogin = (Date.now() - timestamp) / (1000 * 60 * 60)
+      
+      if (hoursSinceLogin < 24) {
+        setIsAdmin(true)
+        setLoading(false)
+        return
+      } else {
+        // Clear expired admin session
+        localStorage.removeItem('admin_session')
+        localStorage.removeItem('admin_timestamp')
+      }
+    }
+
     if (!supabase) {
       setLoading(false)
       return
@@ -56,12 +78,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
+    // Clear admin session
+    localStorage.removeItem('admin_session')
+    localStorage.removeItem('admin_timestamp')
+    document.cookie = 'admin_session=; path=/; max-age=0'
+    setIsAdmin(false)
+    
+    // Clear Supabase session
     if (!supabase) return
     await supabase.auth.signOut()
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

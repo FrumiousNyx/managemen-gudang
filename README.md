@@ -29,8 +29,14 @@ Aplikasi web manajemen inventaris yang siap produksi, ramah mobile untuk merek p
 ## Environment Variables
 
 ```bash
+# Konfigurasi Supabase
 NEXT_PUBLIC_SUPABASE_URL=url-proyek-supabase-anda
 NEXT_PUBLIC_SUPABASE_ANON_KEY=anon-key-supabase-anda
+
+# Konfigurasi Admin Login
+# Ganti dengan username dan password yang aman untuk login admin
+NEXT_PUBLIC_ADMIN_USERNAME=admin
+NEXT_PUBLIC_ADMIN_PASSWORD=admin
 ```
 
 ## Instruksi Setup

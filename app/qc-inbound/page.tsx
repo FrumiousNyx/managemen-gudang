@@ -271,53 +271,70 @@ export default function QCInbound() {
             .container {
               width: 100%;
               height: 100%;
-              padding: 2mm 2mm;
+              padding: 1.5mm 1.5mm;
               display: flex;
-              flex-direction: column;
+              flex-direction: row;
+              align-items: center;
+              justify-content: space-between;
+              gap: 1mm;
+            }
+            .qr-side {
+              flex-shrink: 0;
+              display: flex;
               align-items: center;
               justify-content: center;
-              text-align: center;
-            }
-            .qr-container { 
-              display: flex; 
-              justify-content: center; 
-              align-items: center;
-              margin: 2px 0;
             }
             .qr-container svg { 
-              width: 75px !important; 
-              height: 75px !important; 
+              width: 60px !important; 
+              height: 60px !important; 
+            }
+            .text-side {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              gap: 0.5mm;
+              min-width: 0;
             }
             .name { 
-              font-size: 10px; 
+              font-size: 9px; 
               font-weight: bold; 
               line-height: 1.1;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
-              max-width: 100%;
             }
             .details { 
-              font-size: 8px; 
+              font-size: 7px; 
               font-weight: 600;
               color: #222; 
               line-height: 1;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             .sku { 
-              font-size: 9px; 
+              font-size: 8px; 
               font-family: 'Courier New', monospace; 
               font-weight: 800; 
-              letter-spacing: 0.5px;
+              letter-spacing: 0.3px;
               line-height: 1;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
           </style>
         </head>
         <body>
           <div class="container">
-            <div class="qr-container">${qrSvgHtml}</div>
-            <div class="name">${product.name}</div>
-            <div class="details">${product.color} / ${product.size}</div>
-            <div class="sku">${product.sku}</div>
+            <div class="qr-side">
+              <div class="qr-container">${qrSvgHtml}</div>
+            </div>
+            <div class="text-side">
+              <div class="name">${product.name}</div>
+              <div class="details">${product.color} / ${product.size}</div>
+              <div class="sku">${product.sku}</div>
+            </div>
           </div>
           <script>
             window.onload = function() {
@@ -555,35 +572,35 @@ export default function QCInbound() {
                 <X className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="p-6">
-              {/* Label Preview - 50x30mm */}
-              <div 
+              {/* Label Preview - 40x20mm horizontal layout */}
+              <div
                 id="thermal-label-print"
-                className="bg-white border-2 border-slate-300 rounded-lg p-3 mx-auto" 
-                style={{ width: '300px', height: '180px' }}
+                className="bg-white border-2 border-slate-300 rounded-lg p-3 mx-auto flex items-center gap-3"
+                style={{ width: '300px', height: '150px' }}
               >
-                <div className="text-center">
-                  <div className="flex justify-center mb-2" id="thermal-label-preview">
-                    {selectedProductForLabel.sku ? (
-                      <QRCode 
-                        value={selectedProductForLabel.sku} 
-                        size={60}
-                      />
-                    ) : (
-                      <div className="w-[60px] h-[60px] bg-slate-200 flex items-center justify-center text-xs text-slate-500">
-                        No SKU
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-xs font-semibold text-slate-900 mb-0.5">{selectedProductForLabel.name}</div>
-                  <div className="text-xs text-slate-600 mb-0.5">{selectedProductForLabel.color} / {selectedProductForLabel.size}</div>
-                  <div className="text-xs font-mono text-slate-800">{selectedProductForLabel.sku}</div>
+                <div className="flex-shrink-0" id="thermal-label-preview">
+                  {selectedProductForLabel.sku ? (
+                    <QRCode
+                      value={selectedProductForLabel.sku}
+                      size={60}
+                    />
+                  ) : (
+                    <div className="w-[60px] h-[60px] bg-slate-200 flex items-center justify-center text-xs text-slate-500">
+                      No SKU
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-slate-900 mb-0.5 truncate">{selectedProductForLabel.name}</div>
+                  <div className="text-xs text-slate-600 mb-0.5 truncate">{selectedProductForLabel.color} / {selectedProductForLabel.size}</div>
+                  <div className="text-xs font-mono text-slate-800 truncate">{selectedProductForLabel.sku}</div>
                 </div>
               </div>
-              
+
               <div className="mt-4 text-center text-sm text-slate-500 dark:text-zinc-400">
-                <p>Preview label ukuran 50x30mm</p>
+                <p>Preview label ukuran 40x20mm (horizontal)</p>
                 <p className="text-xs mt-1">Klik cetak untuk mengirim ke printer thermal</p>
               </div>
 

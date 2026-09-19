@@ -4,17 +4,20 @@ import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { useToast } from '@/components/toast-provider'
-import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search } from 'lucide-react'
+import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search, Download } from 'lucide-react'
 import QRCode from 'react-qr-code'
+import * as XLSX from 'xlsx'
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false)
   const [isStockModalOpen, setIsStockModalOpen] = useState(false)
+  const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false)
   const [selectedProductForLabel, setSelectedProductForLabel] = useState<Product | null>(null)
   const [selectedProductForStock, setSelectedProductForStock] = useState<Product | null>(null)
   const [stockValue, setStockValue] = useState('')
+  const [bulkStockValue, setBulkStockValue] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     color: '',
@@ -25,6 +28,8 @@ export default function Products() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'name' | 'stock' | 'status'>('status')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set())
+  const [showBulkActions, setShowBulkActions] = useState(false)
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -81,6 +86,144 @@ export default function Products() {
         return 0
     }
   })
+
+  const exportToExcel = () => {
+    const exportData = sortedProducts.map(product => ({
+      SKU: product.sku,
+      'Nama Produk': product.name,
+      Warna: product.color,
+      Ukuran: product.size,
+      Stok: product.stock,
+      Status: getStockStatus(product).label
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Daftar Produk')
+
+    // Set column widths
+    worksheet['!cols'] = [
+      { wch: 15 }, // SKU
+      { wch: 25 }, // Nama Produk
+      { wch: 10 }, // Warna
+      { wch: 8 },  // Ukuran
+      { wch: 8 },  // Stok
+      { wch: 10 }  // Status
+    ]
+
+    XLSX.writeFile(workbook, `daftar-produk-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  const handleSelectProduct = (productId: string) => {
+    const newSelected = new Set(selectedProducts)
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId)
+    } else {
+      newSelected.add(productId)
+    }
+    setSelectedProducts(newSelected)
+    setShowBulkActions(newSelected.size > 0)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedProducts.size === sortedProducts.length) {
+      setSelectedProducts(new Set())
+      setShowBulkActions(false)
+    } else {
+      setSelectedProducts(new Set(sortedProducts.map(p => p.id)))
+      setShowBulkActions(true)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus ${selectedProducts.size} produk?`)) return
+
+    if (!supabase) {
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .in('id', Array.from(selectedProducts))
+
+      if (error) throw error
+
+      showToast('success', `${selectedProducts.size} produk berhasil dihapus`)
+      setSelectedProducts(new Set())
+      setShowBulkActions(false)
+      await fetchProducts()
+    } catch (error) {
+      console.error('Error bulk deleting products:', error)
+      showToast('error', 'Gagal menghapus produk')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBulkStockUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!supabase || selectedProducts.size === 0) {
+      showToast('error', 'Koneksi database tidak dikonfigurasi atau tidak ada produk dipilih')
+      return
+    }
+
+    const adjustment = parseInt(bulkStockValue)
+    if (isNaN(adjustment) || adjustment === 0) {
+      showToast('error', 'Masukkan angka yang valid (bukan 0)')
+      return
+    }
+
+    setLoading(true)
+    try {
+      for (const productId of selectedProducts) {
+        const product = products.find(p => p.id === productId)
+        if (!product) continue
+
+        const newStock = product.stock + adjustment
+        if (newStock < 0) {
+          showToast('error', `Stok tidak bisa negatif untuk ${product.name}`)
+          continue
+        }
+
+        // Update product stock
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ stock: newStock })
+          .eq('id', productId)
+
+        if (updateError) throw updateError
+
+        // Log to inventory_logs
+        const { error: logError } = await supabase
+          .from('inventory_logs')
+          .insert({
+            product_id: productId,
+            type: adjustment > 0 ? 'INBOUND_QC' : 'OUTBOUND_PACKING',
+            qty: adjustment,
+            notes: 'Bulk stock adjustment via Products page'
+          })
+
+        if (logError) throw logError
+      }
+
+      showToast('success', `Stok ${selectedProducts.size} produk berhasil diperbarui`)
+      setIsBulkStockModalOpen(false)
+      setBulkStockValue('')
+      setSelectedProducts(new Set())
+      setShowBulkActions(false)
+      await fetchProducts()
+    } catch (error) {
+      console.error('Error bulk updating stock:', error)
+      showToast('error', 'Gagal memperbarui stok')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSort = (field: 'name' | 'stock' | 'status') => {
     if (sortBy === field) {
@@ -267,26 +410,18 @@ export default function Products() {
             .container {
               width: 100%;
               height: 100%;
-              padding: 1.5mm 2mm;
+              padding: 2mm 2mm;
               display: flex;
               flex-direction: column;
               align-items: center;
-              justify-content: space-between;
+              justify-content: center;
               text-align: center;
-            }
-            .title { 
-              font-size: 9px; 
-              font-weight: 800; 
-              letter-spacing: 0.5px;
-              text-transform: uppercase;
-              line-height: 1;
             }
             .qr-container { 
               display: flex; 
               justify-content: center; 
               align-items: center;
-              flex: 1;
-              margin: 1px 0;
+              margin: 2px 0;
             }
             .qr-container svg { 
               width: 75px !important; 
@@ -314,22 +449,14 @@ export default function Products() {
               letter-spacing: 0.5px;
               line-height: 1;
             }
-            .qc { 
-              font-size: 7.5px; 
-              font-weight: 800; 
-              color: #16a34a; 
-              line-height: 1;
-            }
           </style>
         </head>
         <body>
           <div class="container">
-            <div class="title">TENZE INVENTORY</div>
             <div class="qr-container">${qrSvgHtml}</div>
             <div class="name">${product.name}</div>
             <div class="details">${product.color} / ${product.size}</div>
             <div class="sku">${product.sku}</div>
-            <div class="qc">QC PASSED</div>
           </div>
           <script>
             window.onload = function() {
@@ -354,14 +481,66 @@ export default function Products() {
           <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Produk</h1>
           <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Kelola SKU produk dan informasi inventaris</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all w-full sm:w-auto"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Tambah SKU Baru
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button
+            onClick={exportToExcel}
+            disabled={sortedProducts.length === 0}
+            className="flex items-center justify-center px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all flex-1 sm:flex-none disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Export Excel
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all flex-1 sm:flex-none"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Tambah SKU Baru
+          </button>
+        </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {showBulkActions && (
+        <div className="mb-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={selectedProducts.size === sortedProducts.length}
+              onChange={handleSelectAll}
+              className="w-4 h-4 rounded border-slate-300 dark:border-zinc-600 text-amber-600 focus:ring-amber-500"
+            />
+            <span className="text-sm font-medium text-amber-900 dark:text-amber-100">
+              {selectedProducts.size} produk dipilih
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsBulkStockModalOpen(true)}
+              className="flex items-center px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              <Edit className="h-4 w-4 mr-1" />
+              Update Stok
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Hapus
+            </button>
+            <button
+              onClick={() => {
+                setSelectedProducts(new Set())
+                setShowBulkActions(false)
+              }}
+              className="flex items-center px-3 py-2 text-slate-700 dark:text-zinc-300 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="mb-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
@@ -430,6 +609,14 @@ export default function Products() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-zinc-800">
             <thead className="bg-slate-50 dark:bg-zinc-950">
               <tr>
+                <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider w-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedProducts.size === sortedProducts.length && sortedProducts.length > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 rounded border-slate-300 dark:border-zinc-600 text-slate-600 focus:ring-slate-500"
+                  />
+                </th>
                 <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                   SKU Barcode
                 </th>
@@ -476,6 +663,14 @@ export default function Products() {
                 const status = getStockStatus(product)
                 return (
                   <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-zinc-950 transition-colors">
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.has(product.id)}
+                        onChange={() => handleSelectProduct(product.id)}
+                        className="w-4 h-4 rounded border-slate-300 dark:border-zinc-600 text-slate-600 focus:ring-slate-500"
+                      />
+                    </td>
                     <td className="px-4 py-3.5 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-zinc-100">
                       {product.sku}
                     </td>
@@ -817,7 +1012,6 @@ export default function Products() {
                 style={{ width: '300px', height: '180px' }}
               >
                 <div className="text-center">
-                  <div className="text-xs font-bold text-slate-900 mb-1">TENZE INVENTORY</div>
                   <div className="flex justify-center mb-2" id="thermal-label-preview">
                     {selectedProductForLabel.sku ? (
                       <QRCode 
@@ -833,7 +1027,6 @@ export default function Products() {
                   <div className="text-xs font-semibold text-slate-900 mb-0.5">{selectedProductForLabel.name}</div>
                   <div className="text-xs text-slate-600 mb-0.5">{selectedProductForLabel.color} / {selectedProductForLabel.size}</div>
                   <div className="text-xs font-mono text-slate-800">{selectedProductForLabel.sku}</div>
-                  <div className="text-xs font-bold text-emerald-600 mt-1">QC PASSED</div>
                 </div>
               </div>
               
@@ -856,6 +1049,65 @@ export default function Products() {
                   Cetak
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Stock Update Modal */}
+      {isBulkStockModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
+            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Update Stok Bulk</h2>
+              <button
+                onClick={() => setIsBulkStockModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-sm text-slate-600 dark:text-zinc-400 mb-4">
+                Update stok untuk {selectedProducts.size} produk yang dipilih
+              </p>
+              
+              <form onSubmit={handleBulkStockUpdate} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+                    Penyesuaian Stok
+                  </label>
+                  <input
+                    type="number"
+                    value={bulkStockValue}
+                    onChange={(e) => setBulkStockValue(e.target.value)}
+                    placeholder="Gunakan angka positif untuk tambah, negatif untuk kurangi"
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                    required
+                  />
+                  <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
+                    Contoh: 10 untuk tambah 10, -5 untuk kurangi 5
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkStockModalOpen(false)}
+                    className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
+                  >
+                    {loading ? 'Memproses...' : 'Update Stok'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

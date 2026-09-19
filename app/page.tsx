@@ -5,16 +5,30 @@ import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { CardSkeleton, TableSkeleton, ProductCardSkeleton, Skeleton } from '@/components/skeleton'
-import { Search, Package, AlertTriangle, CheckCircle } from 'lucide-react'
+import { useToast } from '@/components/toast-provider'
+import { Search, Package, AlertTriangle, CheckCircle, Download, Bell } from 'lucide-react'
+import * as XLSX from 'xlsx'
 
 export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
+  const { showToast } = useToast()
 
   useEffect(() => {
     fetchProducts()
+    
+    // Request notification permission
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission)
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+          setNotificationPermission(permission)
+        })
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -69,6 +83,48 @@ export default function Dashboard() {
   const totalStock = products.reduce((sum, p) => sum + p.stock, 0)
   const lowStockCount = products.filter((p) => isLowStock(p)).length
 
+  const exportToExcel = () => {
+    const exportData = filteredProducts.map(product => ({
+      SKU: product.sku,
+      'Nama Produk': product.name,
+      Warna: product.color,
+      Ukuran: product.size,
+      Stok: product.stock,
+      Status: getStockStatus(product).label
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Stok Inventaris')
+
+    // Set column widths
+    worksheet['!cols'] = [
+      { wch: 15 }, // SKU
+      { wch: 25 }, // Nama Produk
+      { wch: 10 }, // Warna
+      { wch: 8 },  // Ukuran
+      { wch: 8 },  // Stok
+      { wch: 10 }  // Status
+    ]
+
+    XLSX.writeFile(workbook, `stok-inventaris-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  // Check for low stock notifications (browser only, not in-app toast to avoid duplicates)
+  useEffect(() => {
+    if (!loading && products.length > 0 && notificationPermission === 'granted') {
+      const lowStockProducts = products.filter(p => isLowStock(p))
+      
+      if (lowStockProducts.length > 0) {
+        // Show single summary notification
+        new Notification('Peringatan Stok Rendah', {
+          body: `${lowStockProducts.length} produk dengan stok rendah perlu perhatian`,
+          icon: '/favicon.ico'
+        })
+      }
+    }
+  }, [loading, products.length, notificationPermission])
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -106,9 +162,29 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Dasbor Stok</h1>
-        <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Pantau level stok secara real-time</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Dasbor Stok</h1>
+          <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Pantau level stok secara real-time</p>
+        </div>
+        <button
+          onClick={exportToExcel}
+          disabled={filteredProducts.length === 0}
+          className="flex items-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export Excel
+        </button>
+        {notificationPermission === 'default' && (
+          <button
+            onClick={() => Notification.requestPermission().then(setNotificationPermission)}
+            className="flex items-center px-4 py-2 bg-amber-500 text-white font-medium rounded-xl hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all"
+            title="Aktifkan notifikasi browser"
+          >
+            <Bell className="h-4 w-4 mr-2" />
+            Aktifkan Notifikasi
+          </button>
+        )}
       </div>
 
       {/* Metric Cards */}

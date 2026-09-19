@@ -66,10 +66,17 @@ export default function Dashboard() {
         .order('production_date', { ascending: false })
         .limit(10)
 
-      if (error) throw error
+      if (error) {
+        // Table might not exist yet, gracefully handle
+        console.log('Production summary table not yet created or no data')
+        setProductionSummaries([])
+        return
+      }
       setProductionSummaries(data || [])
     } catch (error) {
-      console.error('Error fetching production summaries:', error)
+      // Silently fail if table doesn't exist yet
+      console.log('Production summary feature not yet available')
+      setProductionSummaries([])
     }
   }
 

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
 import { Skeleton } from '@/components/skeleton'
-import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar, Trash2, AlertTriangle, Download } from 'lucide-react'
+import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar, Trash2, AlertTriangle, Download, RefreshCw } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -41,7 +41,16 @@ export default function History() {
     fetchLogs()
   }, [filter, startDate, endDate])
 
-  const fetchLogs = async () => {
+  // Auto-refresh every 30 seconds to get latest data
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchLogs(true) // Force refresh without cache
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [filter, startDate, endDate])
+
+  const fetchLogs = async (forceRefresh = false) => {
     if (!supabase) {
       showToast('error', 'Koneksi database tidak dikonfigurasi')
       return
@@ -53,13 +62,15 @@ export default function History() {
     try {
       // Create cache key based on filters
       const cacheKey = `${CACHE_KEYS.INVENTORY_LOGS}_${filter}_${startDate}_${endDate}`
-      
-      // Try to get from cache first
-      const cachedData = cache.get(cacheKey)
-      if (cachedData) {
-        setLogs(cachedData)
-        setLoading(false)
-        return
+
+      // Only use cache if not forcing refresh
+      if (!forceRefresh) {
+        const cachedData = cache.get(cacheKey)
+        if (cachedData) {
+          setLogs(cachedData)
+          setLoading(false)
+          return
+        }
       }
 
       let query = supabase
@@ -93,9 +104,9 @@ export default function History() {
 
       const logs = data || []
       setLogs(logs)
-      
-      // Cache the results for 3 minutes
-      cache.set(cacheKey, logs, 3 * 60 * 1000)
+
+      // Cache the results for 1 minute (reduced from 3 minutes for fresher data)
+      cache.set(cacheKey, logs, 1 * 60 * 1000)
     } catch (error) {
       console.error('Error fetching logs:', error)
       showToast('error', 'Gagal memuat riwayat')
@@ -302,6 +313,15 @@ export default function History() {
               <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Filter</h2>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => fetchLogs(true)}
+                disabled={loading}
+                className="flex items-center px-3 py-2 text-sm bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh data"
+              >
+                <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
               <button
                 onClick={exportToPDF}
                 disabled={logs.length === 0}

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { supabase, Product } from '@/lib/supabase'
+import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
 import { Scan, Package, AlertCircle, CheckCircle, XCircle, Layers, Zap, Camera, CameraOff, RotateCw } from 'lucide-react'
 
@@ -221,7 +222,10 @@ export default function PackingOutbound() {
       ])
 
       showToast('success', `Pindai: ${qty}x ${product.name}`)
-      
+
+      // Clear inventory logs cache to ensure history page gets fresh data
+      cache.delete(CACHE_KEYS.INVENTORY_LOGS)
+
       // Refresh router to update other pages
       router.refresh()
       
@@ -336,7 +340,10 @@ export default function PackingOutbound() {
 
         showToast('success', `Scanned: ${qty}x ${product.name}`)
         setBarcodeInput('')
-        
+
+        // Clear inventory logs cache to ensure history page gets fresh data
+        cache.delete(CACHE_KEYS.INVENTORY_LOGS)
+
         // Refresh router to update other pages
         router.refresh()
       } catch (error) {

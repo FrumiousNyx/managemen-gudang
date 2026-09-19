@@ -133,6 +133,7 @@ export default function QCInbound() {
 
         // Clear cache to force refresh
         cache.delete(CACHE_KEYS.PRODUCTS)
+        cache.delete(CACHE_KEYS.INVENTORY_LOGS)
 
         // Reset form
         setSelectedProduct(null)
@@ -199,6 +200,7 @@ export default function QCInbound() {
 
       // Clear cache to force refresh
       cache.delete(CACHE_KEYS.PRODUCTS)
+      cache.delete(CACHE_KEYS.INVENTORY_LOGS)
 
       showToast('success', `Batch selesai: ${successCount} berhasil, ${failedCount} gagal`)
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
+import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
 import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search, Download, Upload, FileSpreadsheet } from 'lucide-react'
 import QRCode from 'react-qr-code'
@@ -400,6 +401,9 @@ export default function Products() {
         if (logError) throw logError
       }
 
+      // Clear inventory logs cache to ensure history page gets fresh data
+      cache.delete(CACHE_KEYS.INVENTORY_LOGS)
+
       showToast('success', `Stok ${selectedProducts.size} produk berhasil diperbarui`)
       setIsBulkStockModalOpen(false)
       setBulkStockValue('')
@@ -554,6 +558,9 @@ export default function Products() {
 
         if (logError) throw logError
       }
+
+      // Clear inventory logs cache to ensure history page gets fresh data
+      cache.delete(CACHE_KEYS.INVENTORY_LOGS)
 
       showToast('success', 'Stok dan threshold berhasil diperbarui')
       setIsStockModalOpen(false)

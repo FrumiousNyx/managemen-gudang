@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { useToast } from '@/components/toast-provider'
-import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search, Download } from 'lucide-react'
+import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search, Download, Upload, FileSpreadsheet } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import * as XLSX from 'xlsx'
 
@@ -14,6 +14,7 @@ export default function Products() {
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false)
   const [isStockModalOpen, setIsStockModalOpen] = useState(false)
   const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [selectedProductForLabel, setSelectedProductForLabel] = useState<Product | null>(null)
   const [selectedProductForStock, setSelectedProductForStock] = useState<Product | null>(null)
   const [stockValue, setStockValue] = useState('')
@@ -25,6 +26,12 @@ export default function Products() {
     sku: ''
   })
   const [loading, setLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: string[] }>({
+    success: 0,
+    failed: 0,
+    errors: []
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'name' | 'stock' | 'status'>('status')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
@@ -135,6 +142,131 @@ export default function Products() {
     ]
 
     XLSX.writeFile(workbook, `daftar-produk-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setImporting(true)
+    setImportResults({ success: 0, failed: 0, errors: [] })
+
+    try {
+      const data = await file.arrayBuffer()
+      const workbook = XLSX.read(data, { type: 'array' })
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[]
+
+      if (jsonData.length === 0) {
+        showToast('error', 'File Excel kosong')
+        setImporting(false)
+        return
+      }
+
+      let successCount = 0
+      let failedCount = 0
+      const errors: string[] = []
+
+      for (const row of jsonData) {
+        try {
+          // Map column names (support both English and Indonesian)
+          const sku = row['SKU'] || row['sku'] || row['Sku']
+          const name = row['Nama Produk'] || row['Nama'] || row['name'] || row['Name']
+          const color = row['Warna'] || row['color'] || row['Color']
+          const size = row['Ukuran'] || row['size'] || row['Size']
+          const stock = row['Stok'] || row['stock'] || row['Stock'] || 0
+
+          if (!sku || !name || !color || !size) {
+            errors.push(`Baris ${jsonData.indexOf(row) + 1}: Data tidak lengkap (SKU, Nama, Warna, Ukuran wajib diisi)`)
+            failedCount++
+            continue
+          }
+
+          // Check if SKU already exists
+          const { data: existingProduct } = await supabase
+            .from('products')
+            .select('id')
+            .eq('sku', sku)
+            .single()
+
+          if (existingProduct) {
+            errors.push(`Baris ${jsonData.indexOf(row) + 1}: SKU ${sku} sudah ada`)
+            failedCount++
+            continue
+          }
+
+          // Insert product
+          const { error } = await supabase
+            .from('products')
+            .insert({
+              sku,
+              name,
+              color,
+              size,
+              stock: parseInt(stock) || 0
+            })
+
+          if (error) throw error
+
+          successCount++
+        } catch (error) {
+          errors.push(`Baris ${jsonData.indexOf(row) + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          failedCount++
+        }
+      }
+
+      setImportResults({ success: successCount, failed: failedCount, errors })
+      
+      if (successCount > 0) {
+        showToast('success', `${successCount} produk berhasil diimpor`)
+        await fetchProducts()
+      }
+      
+      if (failedCount > 0) {
+        showToast('error', `${failedCount} produk gagal diimpor`)
+      }
+    } catch (error) {
+      console.error('Error importing Excel:', error)
+      showToast('error', 'Gagal membaca file Excel')
+    } finally {
+      setImporting(false)
+      // Reset file input
+      e.target.value = ''
+    }
+  }
+
+  const downloadTemplate = () => {
+    const templateData = [
+      {
+        SKU: 'PROD-001',
+        'Nama Produk': 'Contoh Produk',
+        Warna: 'Hitam',
+        Ukuran: 'L',
+        Stok: 10
+      },
+      {
+        SKU: 'PROD-002',
+        'Nama Produk': 'Contoh Produk',
+        Warna: 'Putih',
+        Ukuran: 'XL',
+        Stok: 5
+      }
+    ]
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template')
+
+    worksheet['!cols'] = [
+      { wch: 15 }, // SKU
+      { wch: 25 }, // Nama Produk
+      { wch: 10 }, // Warna
+      { wch: 8 },  // Ukuran
+      { wch: 8 }   // Stok
+    ]
+
+    XLSX.writeFile(workbook, 'template-import-produk.xlsx')
   }
 
   const handleSelectProduct = (productId: string) => {
@@ -512,6 +644,13 @@ export default function Products() {
           >
             <Download className="h-5 w-5 mr-2" />
             Export Excel
+          </button>
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center justify-center px-4 py-2 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all flex-1 sm:flex-none"
+          >
+            <Upload className="h-5 w-5 mr-2" />
+            Import Excel
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
@@ -1131,6 +1270,120 @@ export default function Products() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Excel Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-2xl w-full border border-slate-200 dark:border-zinc-800">
+            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Import Produk dari Excel</h2>
+              <button
+                onClick={() => setIsImportModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {!importing && importResults.success === 0 && importResults.failed === 0 ? (
+                <>
+                  <div className="mb-6">
+                    <button
+                      onClick={downloadTemplate}
+                      className="flex items-center px-4 py-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 font-medium rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900 transition-colors mb-4"
+                    >
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                      Download Template Excel
+                    </button>
+                    <p className="text-sm text-slate-600 dark:text-zinc-400">
+                      Download template untuk melihat format yang diperlukan. Kolom yang wajib diisi: SKU, Nama Produk, Warna, Ukuran. Stok bersifat opsional (default 0).
+                    </p>
+                  </div>
+
+                  <div className="border-2 border-dashed border-slate-300 dark:border-zinc-700 rounded-xl p-8 text-center">
+                    <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-sm text-slate-600 dark:text-zinc-400 mb-4">
+                      Pilih file Excel (.xlsx atau .xls) yang berisi data produk
+                    </p>
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleImportExcel}
+                      disabled={importing}
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-950 dark:file:text-emerald-400 dark:hover:file:bg-emerald-900 transition-all"
+                    />
+                  </div>
+
+                  <div className="mt-6 bg-slate-50 dark:bg-zinc-950 rounded-xl p-4">
+                    <h4 className="font-semibold text-slate-900 dark:text-zinc-100 mb-2 text-sm">Format Kolom:</h4>
+                    <ul className="text-xs text-slate-600 dark:text-zinc-400 space-y-1">
+                      <li>• <strong>SKU</strong>: Kode unik untuk produk (wajib)</li>
+                      <li>• <strong>Nama Produk</strong> atau <strong>Nama</strong>: Nama produk (wajib)</li>
+                      <li>• <strong>Warna</strong> atau <strong>Color</strong>: Warna produk (wajib)</li>
+                      <li>• <strong>Ukuran</strong> atau <strong>Size</strong>: Ukuran produk (wajib)</li>
+                      <li>• <strong>Stok</strong> atau <strong>Stock</strong>: Jumlah stok awal (opsional, default 0)</li>
+                    </ul>
+                  </div>
+                </>
+              ) : importing ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 dark:border-zinc-800 border-t-emerald-600 mx-auto mb-4"></div>
+                  <p className="text-sm text-slate-600 dark:text-zinc-400">Mengimpor produk...</p>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                    <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
+                      ✅ {importResults.success} produk berhasil diimpor
+                    </p>
+                    {importResults.failed > 0 && (
+                      <p className="text-sm font-medium text-red-700 dark:text-red-400 mt-2">
+                        ❌ {importResults.failed} produk gagal diimpor
+                      </p>
+                    )}
+                  </div>
+
+                  {importResults.errors.length > 0 && (
+                    <div className="mb-6 max-h-48 overflow-y-auto">
+                      <h4 className="font-semibold text-slate-900 dark:text-zinc-100 mb-2 text-sm">Error Log:</h4>
+                      <div className="bg-red-50 dark:bg-red-950 rounded-xl p-4 border border-red-200 dark:border-red-800">
+                        {importResults.errors.map((error, index) => (
+                          <p key={index} className="text-xs text-red-700 dark:text-red-400 mb-1">
+                            {error}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setIsImportModalOpen(false)
+                        setImportResults({ success: 0, failed: 0, errors: [] })
+                      }}
+                      className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                    >
+                      Tutup
+                    </button>
+                    {importResults.failed > 0 && (
+                      <button
+                        onClick={() => {
+                          setImportResults({ success: 0, failed: 0, errors: [] })
+                        }}
+                        className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                      >
+                        Import Lagi
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

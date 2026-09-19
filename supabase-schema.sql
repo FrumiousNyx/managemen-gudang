@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS products (
                                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                                 );
 
+-- Migration: Add stock_threshold column to existing products table
+ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_threshold INTEGER DEFAULT 40 CHECK (stock_threshold > 0);
+
                             -- Create inventory_logs table for audit trail
                             CREATE TABLE IF NOT EXISTS inventory_logs (
                                 id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

@@ -20,6 +20,9 @@ interface RawMaterial {
   supplier: {
     name: string
   } | null
+  initial_quantity: number
+  outbound_quantity: number
+  balance_quantity: number
 }
 
 interface Supplier {
@@ -71,6 +74,70 @@ export default function RawMaterials() {
       showToast('error', 'Gagal memuat data kain')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleInbound = async (material: RawMaterial, qty: number) => {
+    if (!supabase) return
+
+    try {
+      const newInitialQuantity = material.initial_quantity + qty
+      const { error } = await supabase
+        .from('raw_materials')
+        .update({ initial_quantity: newInitialQuantity })
+        .eq('id', material.id)
+
+      if (error) throw error
+
+      // Log the transaction
+      await supabase
+        .from('raw_material_logs')
+        .insert([{
+          raw_material_id: material.id,
+          type: 'INBOUND',
+          qty: qty,
+          notes: `Inbound manual +${qty} ${material.unit}`
+        }])
+
+      showToast('success', `Inbound +${qty} ${material.unit} berhasil`)
+      await fetchRawMaterials()
+    } catch (error) {
+      console.error('Error inbound:', error)
+      showToast('error', 'Gagal inbound kain')
+    }
+  }
+
+  const handleOutbound = async (material: RawMaterial, qty: number) => {
+    if (!supabase) return
+    if (qty > material.balance_quantity) {
+      showToast('error', 'Stok tidak mencukupi')
+      return
+    }
+
+    try {
+      const newOutboundQuantity = material.outbound_quantity + qty
+      const { error } = await supabase
+        .from('raw_materials')
+        .update({ outbound_quantity: newOutboundQuantity })
+        .eq('id', material.id)
+
+      if (error) throw error
+
+      // Log the transaction
+      await supabase
+        .from('raw_material_logs')
+        .insert([{
+          raw_material_id: material.id,
+          type: 'OUTBOUND',
+          qty: qty,
+          notes: `Outbound manual -${qty} ${material.unit}`
+        }])
+
+      showToast('success', `Outbound -${qty} ${material.unit} berhasil`)
+      await fetchRawMaterials()
+    } catch (error) {
+      console.error('Error outbound:', error)
+      showToast('error', 'Gagal outbound kain')
     }
   }
 
@@ -305,7 +372,42 @@ export default function RawMaterials() {
 
             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-400 mb-2">
               <Package className="h-4 w-4" />
-              <span>{material.quantity} {material.unit}</span>
+              <span>Inbound: {material.initial_quantity} {material.unit}</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-400 mb-2">
+              <Package className="h-4 w-4" />
+              <span>Outbound: {material.outbound_quantity} {material.unit}</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-zinc-100 mb-2">
+              <Package className="h-4 w-4" />
+              <span>Balance: {material.balance_quantity} {material.unit}</span>
+            </div>
+
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => {
+                  const qty = prompt(`Inbound quantity (${material.unit}):`)
+                  if (qty && !isNaN(parseInt(qty))) {
+                    handleInbound(material, parseInt(qty))
+                  }
+                }}
+                className="flex-1 py-2 text-xs font-medium bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors"
+              >
+                + Inbound
+              </button>
+              <button
+                onClick={() => {
+                  const qty = prompt(`Outbound quantity (${material.unit}):`)
+                  if (qty && !isNaN(parseInt(qty))) {
+                    handleOutbound(material, parseInt(qty))
+                  }
+                }}
+                className="flex-1 py-2 text-xs font-medium bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors"
+              >
+                - Outbound
+              </button>
             </div>
 
             {material.color && (

@@ -25,6 +25,7 @@ interface ProductionOrder {
     color: string
     size: string
   } | null
+  actual_rol_count: number | null
 }
 
 interface Vendor {
@@ -52,6 +53,7 @@ export default function Production() {
     vendor_id: '',
     sku: '',
     rol_count: '',
+    actual_rol_count: '',
     output_qty: '',
     production_date: '',
     notes: ''
@@ -117,6 +119,7 @@ export default function Production() {
         vendor_id: order.vendor_id,
         sku: order.sku,
         rol_count: order.rol_count.toString(),
+        actual_rol_count: order.actual_rol_count?.toString() || '',
         output_qty: order.output_qty.toString(),
         production_date: order.production_date,
         notes: order.notes || ''
@@ -128,6 +131,7 @@ export default function Production() {
         vendor_id: '',
         sku: '',
         rol_count: '',
+        actual_rol_count: '',
         output_qty: '',
         production_date: new Date().toISOString().split('T')[0],
         notes: ''
@@ -164,13 +168,19 @@ export default function Production() {
       return
     }
 
+    const rolCount = parseInt(formData.rol_count)
+    const actualRolCount = formData.actual_rol_count ? parseInt(formData.actual_rol_count) : rolCount
+    const difference = rolCount - actualRolCount
+
     setLoading(true)
     try {
       const payload = {
         vendor_id: formData.vendor_id,
         product_id: selectedProduct.id,
         sku: selectedProduct.sku,
-        rol_count: parseInt(formData.rol_count),
+        rol_count: rolCount,
+        actual_rol_count: actualRolCount,
+        difference_rol: difference,
         output_qty: parseInt(formData.output_qty),
         production_date: formData.production_date,
         notes: formData.notes || null
@@ -236,8 +246,37 @@ export default function Production() {
 
       if (error) throw error
 
-      // If completed, create production summary entry
+      // If completed, create production summary entry and deduct from raw materials
       if (newStatus === 'completed') {
+        const actualRolCount = order.actual_rol_count || order.rol_count
+
+        // Deduct from raw materials if linked
+        if (order.raw_material_id) {
+          const { data: rawMaterial } = await supabase
+            .from('raw_materials')
+            .select('outbound_quantity')
+            .eq('id', order.raw_material_id)
+            .single()
+
+          if (rawMaterial) {
+            const newOutboundQuantity = rawMaterial.outbound_quantity + actualRolCount
+            await supabase
+              .from('raw_materials')
+              .update({ outbound_quantity: newOutboundQuantity })
+              .eq('id', order.raw_material_id)
+
+            // Log the raw material transaction
+            await supabase
+              .from('raw_material_logs')
+              .insert([{
+                raw_material_id: order.raw_material_id,
+                type: 'TO_PRODUCTION',
+                qty: actualRolCount,
+                notes: `Dipakai untuk produksi vendor - order: ${order.sku}`
+              }])
+          }
+        }
+
         const { error: summaryError } = await supabase
           .from('production_summary')
           .insert([{
@@ -364,7 +403,9 @@ export default function Production() {
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Vendor</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Produk</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Rol</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Projected (Rol)</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Actual (Rol)</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Difference</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Hasil Pcs</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Tanggal</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Status</th>
@@ -386,6 +427,12 @@ export default function Production() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-zinc-400">
                     {order.rol_count} rol
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-zinc-400">
+                    {order.actual_rol_count || order.rol_count} rol
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {order.difference_rol !== undefined ? order.difference_rol : 0} rol
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-zinc-100">
                     {order.output_qty} pcs
@@ -509,7 +556,7 @@ export default function Production() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
-                    Jumlah Rol Kain *
+                    Jumlah Rol Kain (Projected) *
                   </label>
                   <input
                     type="number"
@@ -520,6 +567,23 @@ export default function Production() {
                     className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                     placeholder="Contoh: 3"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+                    Jumlah Rol Aktual (Actual)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.actual_rol_count}
+                    onChange={(e) => setFormData({ ...formData, actual_rol_count: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                    placeholder="Contoh: 3 (kosongkan jika sama dengan projected)"
+                  />
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                    Input rol yang benar-benar dipotong (selisih = Projected - Actual)
+                  </p>
                 </div>
 
                 <div>

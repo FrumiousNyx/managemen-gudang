@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS products (
                             CREATE TABLE IF NOT EXISTS inventory_logs (
                                 id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                                     product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-                                        type TEXT NOT NULL CHECK (type IN ('INBOUND_QC', 'OUTBOUND_PACKING', 'WAREHOUSE_TRANSFER', 'VENDOR_INBOUND', 'VENDOR_OUTBOUND')),
+                                        type TEXT NOT NULL CHECK (type IN ('INBOUND_QC', 'OUTBOUND_PACKING')),
                                             qty INTEGER NOT NULL CHECK (qty != 0),
                                                 notes TEXT,
                                                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -441,43 +441,6 @@ CREATE TABLE IF NOT EXISTS production_summary (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
--- VENDOR PRODUCTION SYSTEM (Sistem Branch Vendor)
--- ============================================
-
--- Create vendor_production table for daily cutting records per vendor
-CREATE TABLE IF NOT EXISTS vendor_production (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
-  cut_date DATE NOT NULL,
-  raw_fabric_id UUID REFERENCES raw_fabric(id) ON DELETE SET NULL,
-  raw_fabric_material_type TEXT CHECK (raw_fabric_material_type IN ('Rayon', 'Spandex Balon')),
-  raw_fabric_quantity_used DECIMAL(10, 2),
-  raw_fabric_unit TEXT,
-  total_pieces INTEGER DEFAULT 0,
-  status TEXT DEFAULT 'In Progress' CHECK (status IN ('In Progress', 'Completed', 'QC Passed', 'Delivered')),
-  notes TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create vendor_cuts table for product-level cutting details
-CREATE TABLE IF NOT EXISTS vendor_cuts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  production_id UUID NOT NULL REFERENCES vendor_production(id) ON DELETE CASCADE,
-  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  quantity INTEGER NOT NULL CHECK (quantity > 0),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Indexes for vendor production system
-CREATE INDEX IF NOT EXISTS idx_vendor_production_vendor_id ON vendor_production(vendor_id);
-CREATE INDEX IF NOT EXISTS idx_vendor_production_cut_date ON vendor_production(cut_date);
-CREATE INDEX IF NOT EXISTS idx_vendor_production_status ON vendor_production(status);
-CREATE INDEX IF NOT EXISTS idx_vendor_production_raw_fabric ON vendor_production(raw_fabric_id);
-CREATE INDEX IF NOT EXISTS idx_vendor_cuts_production_id ON vendor_cuts(production_id);
-CREATE INDEX IF NOT EXISTS idx_vendor_cuts_product_id ON vendor_cuts(product_id);
-
 -- Update products table to add supplier_id
 ALTER TABLE products ADD COLUMN IF NOT EXISTS supplier_id UUID REFERENCES suppliers(id) ON DELETE SET NULL;
 
@@ -511,66 +474,3 @@ INSERT INTO vendors (name, contact_person, phone, email, production_days, is_act
   ('Didin', 'Didin', '081234567894', 'didin@example.com', ARRAY['wednesday', 'thursday'], true),
   ('Vendor 3', 'Vendor 3', '081234567895', 'vendor3@example.com', ARRAY['friday'], true)
 ON CONFLICT DO NOTHING;
-
--- ============================================
--- RAW FABRIC TABLE (Kain Utuh - Rayon, Spandex Balon)
--- ============================================
-
--- Create raw_fabric table for Kain Utuh
-CREATE TABLE IF NOT EXISTS raw_fabric (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  batch_code TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
-  material_type TEXT NOT NULL CHECK (material_type IN ('Rayon', 'Spandex Balon')),
-  quantity DECIMAL(10, 2) NOT NULL,
-  unit TEXT NOT NULL CHECK (unit IN ('Yard', 'Meter', 'Kg')),
-  color TEXT,
-  supplier TEXT,
-  status TEXT DEFAULT 'Available' CHECK (status IN ('Available', 'In Process', 'Completed', 'Low Stock')),
-  minimum_stock DECIMAL(10, 2) DEFAULT 10,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create indexes for raw_fabric
-CREATE INDEX IF NOT EXISTS idx_raw_fabric_batch ON raw_fabric(batch_code);
-CREATE INDEX IF NOT EXISTS idx_raw_fabric_material_type ON raw_fabric(material_type);
-CREATE INDEX IF NOT EXISTS idx_raw_fabric_status ON raw_fabric(status);
-
--- Insert sample raw fabric
-INSERT INTO raw_fabric (batch_code, name, material_type, quantity, unit, color, supplier, minimum_stock) VALUES
-  ('RAY-001', 'Rayon Premium', 'Rayon', 100, 'Yard', 'Putih', 'Supplier A', 20),
-  ('SPX-001', 'Spandex Balon', 'Spandex Balon', 50, 'Kg', 'Hitam', 'Supplier B', 10)
-ON CONFLICT (batch_code) DO NOTHING;
-
--- ============================================
--- WAREHOUSE 2 & TRANSFER SYSTEM
--- ============================================
-
--- Create warehouse_2_stock table for Gudang 2 inventory
-CREATE TABLE IF NOT EXISTS warehouse_2_stock (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE UNIQUE,
-  quantity INTEGER DEFAULT 0 CHECK (quantity >= 0),
-  minimum_stock INTEGER DEFAULT 5,
-  last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create warehouse_transfers table for inter-warehouse stock movement
-CREATE TABLE IF NOT EXISTS warehouse_transfers (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  from_warehouse TEXT NOT NULL CHECK (from_warehouse IN ('Gudang Utama', 'Gudang 2')),
-  to_warehouse TEXT NOT NULL CHECK (to_warehouse IN ('Gudang Utama', 'Gudang 2')),
-  quantity INTEGER NOT NULL CHECK (quantity > 0),
-  notes TEXT,
-  status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'In Transit', 'Completed', 'Cancelled')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create indexes for warehouse system
-CREATE INDEX IF NOT EXISTS idx_warehouse_2_stock_product_id ON warehouse_2_stock(product_id);
-CREATE INDEX IF NOT EXISTS idx_warehouse_transfers_product_id ON warehouse_transfers(product_id);
-CREATE INDEX IF NOT EXISTS idx_warehouse_transfers_status ON warehouse_transfers(status);
-CREATE INDEX IF NOT EXISTS idx_warehouse_transfers_created_at ON warehouse_transfers(created_at);

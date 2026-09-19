@@ -8,7 +8,6 @@ import { CardSkeleton, Skeleton } from '@/components/skeleton'
 import { TrendingUp, Package, Calendar, BarChart3, ArrowUp, Download } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface InventoryLog {
   id: string
@@ -196,91 +195,6 @@ export default function Analytics() {
   const topProducts = getTopProducts()
   const colorBreakdown = getColorBreakdown()
   const sizeBreakdown = getSizeBreakdown()
-
-  // Get daily sales data for line chart
-  const getDailySalesData = () => {
-    const dailyMap = new Map<string, number>()
-    
-    filteredLogs.forEach(log => {
-      const date = new Date(log.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })
-      const existing = dailyMap.get(date) || 0
-      dailyMap.set(date, existing + Math.abs(log.qty))
-    })
-
-    // Get last 7 days
-    const last7Days = []
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })
-      last7Days.push({
-        date: dateStr,
-        sales: dailyMap.get(dateStr) || 0
-      })
-    }
-
-    return last7Days
-  }
-
-  // Get data for bar chart (top 10 products)
-  const getTop10ProductsData = () => {
-    const productMap = new Map<string, ProductSales>()
-
-    filteredLogs.forEach(log => {
-      if (!log.product) return
-      const key = `${log.product.sku}-${log.product.color}-${log.product.size}`
-      const existing = productMap.get(key)
-
-      if (existing) {
-        existing.total_qty += Math.abs(log.qty)
-      } else {
-        productMap.set(key, {
-          product_name: log.product.name,
-          product_sku: log.product.sku,
-          total_qty: Math.abs(log.qty),
-          color: log.product.color,
-          size: log.product.size
-        })
-      }
-    })
-
-    return Array.from(productMap.values())
-      .sort((a, b) => b.total_qty - a.total_qty)
-      .slice(0, 10)
-      .map((product, index) => ({
-        name: product.product_name.substring(0, 15) + '...',
-        sku: product.product_sku,
-        qty: product.total_qty
-      }))
-  }
-
-  // Color data for pie chart
-  const getColorChartData = () => {
-    const totalSales = filteredLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
-    return colorBreakdown.map(([color, qty]) => ({
-      name: color,
-      value: qty,
-      percentage: totalSales > 0 ? ((qty / totalSales) * 100).toFixed(1) : '0'
-    }))
-  }
-
-  // Size data for pie chart
-  const getSizeChartData = () => {
-    const totalSales = filteredLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
-    return sizeBreakdown.map(([size, qty]) => ({
-      name: size,
-      value: qty,
-      percentage: totalSales > 0 ? ((qty / totalSales) * 100).toFixed(1) : '0'
-    }))
-  }
-
-  const dailySalesData = getDailySalesData()
-  const top10ProductsData = getTop10ProductsData()
-  const colorChartData = getColorChartData()
-  const sizeChartData = getSizeChartData()
-
-  // Colors for charts
-  const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16', '#6366f1', '#14b8a6']
 
   const exportToPDF = () => {
     const doc = new jsPDF()
@@ -568,61 +482,12 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Line Chart - Daily Sales Trend */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Tren Penjualan Harian</h2>
-            </div>
-            {startDate && endDate && (
-              <span className="text-xs text-slate-500 dark:text-zinc-400">
-                Filter: {startDate} - {endDate}
-              </span>
-            )}
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={dailySalesData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" darkStroke="#27272a" />
-              <XAxis 
-                dataKey="date" 
-                stroke="#64748b"
-                darkStroke="#a1a1aa"
-                fontSize={12}
-              />
-              <YAxis 
-                stroke="#64748b"
-                darkStroke="#a1a1aa"
-                fontSize={12}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#ffffff', 
-                  darkBackgroundColor: '#18181b',
-                  border: '1px solid #e2e8f0',
-                  darkBorder: '#27272a',
-                  borderRadius: '8px'
-                }}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="sales" 
-                stroke="#3b82f6" 
-                strokeWidth={2}
-                name="Unit Terjual"
-                dot={{ fill: '#3b82f6', r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Bar Chart - Top 10 Products */}
+        {/* Top 5 Products */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Top 10 Produk Terlaris</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Top 5 Produk Terlaris</h2>
             </div>
             {startDate && endDate && (
               <span className="text-xs text-slate-500 dark:text-zinc-400">
@@ -630,44 +495,44 @@ export default function Analytics() {
               </span>
             )}
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={top10ProductsData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" darkStroke="#27272a" />
-              <XAxis 
-                type="number" 
-                stroke="#64748b"
-                darkStroke="#a1a1aa"
-                fontSize={12}
-              />
-              <YAxis 
-                type="category" 
-                dataKey="name" 
-                width={100}
-                stroke="#64748b"
-                darkStroke="#a1a1aa"
-                fontSize={11}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#ffffff', 
-                  darkBackgroundColor: '#18181b',
-                  border: '1px solid #e2e8f0',
-                  darkBorder: '#27272a',
-                  borderRadius: '8px'
-                }}
-              />
-              <Legend />
-              <Bar dataKey="qty" fill="#10b981" name="Unit Terjual" />
-            </BarChart>
-          </ResponsiveContainer>
+          {topProducts.length === 0 ? (
+            <p className="text-slate-500 dark:text-zinc-400 text-center py-8">Belum ada data penjualan</p>
+          ) : (
+            <div className="space-y-4">
+              {topProducts.map((product, index) => (
+                <div key={`${product.product_sku}-${index}`} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-950 rounded-xl">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                        index === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400' :
+                        index === 1 ? 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300' :
+                        index === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400' :
+                        'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400'
+                      }`}>
+                        {index + 1}
+                      </span>
+                      <p className="font-medium text-slate-900 dark:text-zinc-100">{product.product_name}</p>
+                    </div>
+                    <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
+                      {product.product_sku} • {product.color} • {product.size}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-slate-900 dark:text-zinc-100">{product.total_qty}</p>
+                    <p className="text-sm text-slate-500 dark:text-zinc-400">unit</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Pie Chart - Color Breakdown */}
+        {/* Color Breakdown */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <ArrowUp className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Distribusi Warna</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Breakdown Warna</h2>
             </div>
             {startDate && endDate && (
               <span className="text-xs text-slate-500 dark:text-zinc-400">
@@ -675,46 +540,38 @@ export default function Analytics() {
               </span>
             )}
           </div>
-          {colorChartData.length === 0 ? (
+          {colorBreakdown.length === 0 ? (
             <p className="text-slate-500 dark:text-zinc-400 text-center py-8">Belum ada data</p>
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={colorChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percentage }) => `${name}: ${percentage}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {colorChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#ffffff', 
-                    darkBackgroundColor: '#18181b',
-                    border: '1px solid #e2e8f0',
-                    darkBorder: '#27272a',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-4">
+              {colorBreakdown.map(([color, qty], index) => {
+                const totalSales = filteredLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
+                const percentage = totalSales > 0 ? (qty / totalSales) * 100 : 0
+                return (
+                  <div key={color} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-900 dark:text-zinc-100">{color}</span>
+                      <span className="text-sm text-slate-500 dark:text-zinc-400">{qty} unit</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full transition-all"
+                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
 
-        {/* Pie Chart - Size Breakdown */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+        {/* Size Breakdown */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Distribusi Ukuran</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Breakdown Ukuran</h2>
             </div>
             {startDate && endDate && (
               <span className="text-xs text-slate-500 dark:text-zinc-400">
@@ -722,37 +579,17 @@ export default function Analytics() {
               </span>
             )}
           </div>
-          {sizeChartData.length === 0 ? (
+          {sizeBreakdown.length === 0 ? (
             <p className="text-slate-500 dark:text-zinc-400 text-center py-8">Belum ada data</p>
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={sizeChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percentage }) => `${name}: ${percentage}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {sizeChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#ffffff', 
-                    darkBackgroundColor: '#18181b',
-                    border: '1px solid #e2e8f0',
-                    darkBorder: '#27272a',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {sizeBreakdown.map(([size, qty]) => (
+                <div key={size} className="bg-slate-50 dark:bg-zinc-950 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-slate-900 dark:text-zinc-100">{qty}</p>
+                  <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">{size}</p>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

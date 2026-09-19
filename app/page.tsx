@@ -15,8 +15,6 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
-  const [rawFabrics, setRawFabrics] = useState<any[]>([])
-  const [warehouse2Stocks, setWarehouse2Stocks] = useState<any[]>([])
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -57,41 +55,23 @@ export default function Dashboard() {
       if (cachedData) {
         setProducts(cachedData)
         setFilteredProducts(cachedData)
-      } else {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .order('name', { ascending: true })
-
-        if (error) throw error
-        
-        const products = data || []
-        setProducts(products)
-        setFilteredProducts(products)
-        
-        // Cache the results for 5 minutes
-        cache.set(CACHE_KEYS.PRODUCTS, products, 5 * 60 * 1000)
+        setLoading(false)
+        return
       }
 
-      // Fetch raw fabrics
-      const { data: rawFabricsData, error: rawFabricsError } = await supabase
-        .from('raw_fabric')
+      const { data, error } = await supabase
+        .from('products')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('name', { ascending: true })
 
-      if (!rawFabricsError) {
-        setRawFabrics(rawFabricsData || [])
-      }
-
-      // Fetch warehouse 2 stocks
-      const { data: warehouse2Data, error: warehouse2Error } = await supabase
-        .from('warehouse_2_stock')
-        .select('*, product:products(*)')
-        .order('last_updated', { ascending: false })
-
-      if (!warehouse2Error) {
-        setWarehouse2Stocks(warehouse2Data || [])
-      }
+      if (error) throw error
+      
+      const products = data || []
+      setProducts(products)
+      setFilteredProducts(products)
+      
+      // Cache the results for 5 minutes
+      cache.set(CACHE_KEYS.PRODUCTS, products, 5 * 60 * 1000)
     } catch (error) {
       console.error('Error fetching products:', error)
     } finally {
@@ -102,9 +82,6 @@ export default function Dashboard() {
   const totalSKUs = products.length
   const totalStock = products.reduce((sum, p) => sum + p.stock, 0)
   const lowStockCount = products.filter((p) => isLowStock(p)).length
-  const lowStockRawFabrics = rawFabrics.filter((rf) => rf.quantity <= rf.minimum_stock)
-  const lowStockWarehouse2 = warehouse2Stocks.filter((ws) => ws.quantity <= ws.minimum_stock)
-  const totalLowStock = lowStockCount + lowStockRawFabrics.length + lowStockWarehouse2.length
 
   const exportToExcel = () => {
     const exportData = filteredProducts.map(product => ({
@@ -135,31 +112,18 @@ export default function Dashboard() {
 
   // Check for low stock notifications (browser only, not in-app toast to avoid duplicates)
   useEffect(() => {
-    if (!loading && notificationPermission === 'granted') {
+    if (!loading && products.length > 0 && notificationPermission === 'granted') {
       const lowStockProducts = products.filter(p => isLowStock(p))
-      const lowStockRawFabrics = rawFabrics.filter((rf) => rf.quantity <= rf.minimum_stock)
-      const lowStockWarehouse2 = warehouse2Stocks.filter((ws) => ws.quantity <= ws.minimum_stock)
       
-      const totalLowStock = lowStockProducts.length + lowStockRawFabrics.length + lowStockWarehouse2.length
-      
-      if (totalLowStock > 0) {
-        let message = `${lowStockProducts.length} produk`
-        if (lowStockRawFabrics.length > 0) {
-          message += `, ${lowStockRawFabrics.length} kain utuh`
-        }
-        if (lowStockWarehouse2.length > 0) {
-          message += `, ${lowStockWarehouse2.length} di Gudang 2`
-        }
-        message += ' dengan stok rendah perlu perhatian'
-        
+      if (lowStockProducts.length > 0) {
         // Show single summary notification
         new Notification('Peringatan Stok Rendah', {
-          body: message,
+          body: `${lowStockProducts.length} produk dengan stok rendah perlu perhatian`,
           icon: '/favicon.ico'
         })
       }
     }
-  }, [loading, products.length, rawFabrics.length, warehouse2Stocks.length, notificationPermission])
+  }, [loading, products.length, notificationPermission])
 
   if (loading) {
     return (
@@ -252,14 +216,11 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Total Stok Rendah</p>
-              <p className="text-4xl font-bold text-red-600 dark:text-red-400 mt-2">{totalLowStock}</p>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-                {lowStockCount} produk, {lowStockRawFabrics.length} kain, {lowStockWarehouse2.length} Gudang 2
-              </p>
+              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Peringatan Stok Rendah</p>
+              <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{lowStockCount}</p>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-red-50 dark:bg-red-950 flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            <div className="h-12 w-12 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
+              <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
         </div>

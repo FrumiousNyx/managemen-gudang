@@ -369,16 +369,6 @@ export default function QCInbound() {
           <li>• Klik "Cetak Label" untuk mencetak label thermal 50x30mm</li>
           <li>• Transaksi akan dicatat dalam riwayat inventaris</li>
         </ul>
-        
-        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-zinc-800">
-          <h4 className="font-semibold text-slate-900 dark:text-zinc-100 mb-2 text-sm">Tips Pengaturan Printer Thermal</h4>
-          <ul className="text-xs text-slate-600 dark:text-zinc-400 space-y-1">
-            <li>• Pilih printer thermal pada Destination (bukan Microsoft Print to PDF)</li>
-            <li>• Klik More settings → Paper size: 50mm x 30mm atau 2 x 1.2 inches</li>
-            <li>• Margins: None (Tanpa margin)</li>
-            <li>• Hilangkan centang Headers and footers untuk menghilangkan tanggal & URL</li>
-          </ul>
-        </div>
       </div>
 
       {/* Label Printing Modal */}

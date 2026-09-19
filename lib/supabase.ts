@@ -14,6 +14,7 @@ export type Product = {
   color: string
   size: string
   stock: number
+  stock_threshold?: number
   created_at?: string
 }
 

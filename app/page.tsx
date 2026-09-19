@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'low' | 'out'>('all')
   const [loading, setLoading] = useState(true)
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
   const { showToast } = useToast()
@@ -32,15 +33,23 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
-    const filtered = products.filter(
+    let filtered = products.filter(
       (product) =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.color.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.size.toLowerCase().includes(searchTerm.toLowerCase())
     )
+
+    // Apply status filter
+    if (statusFilter === 'low') {
+      filtered = filtered.filter(p => isLowStock(p) && p.stock > 0)
+    } else if (statusFilter === 'out') {
+      filtered = filtered.filter(p => p.stock === 0)
+    }
+
     setFilteredProducts(filtered)
-  }, [searchTerm, products])
+  }, [searchTerm, statusFilter, products])
 
   const fetchProducts = async () => {
     if (!supabase) {
@@ -228,7 +237,7 @@ export default function Dashboard() {
 
       {/* Search Bar */}
       <div className="mb-6">
-        <div className="relative">
+        <div className="relative mb-3">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
           <input
             type="text"
@@ -237,6 +246,40 @@ export default function Dashboard() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
           />
+        </div>
+
+        {/* Quick Filters */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'all'
+                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800'
+                : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+            }`}
+          >
+            Semua
+          </button>
+          <button
+            onClick={() => setStatusFilter('low')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'low'
+                ? 'bg-amber-500 text-white'
+                : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+            }`}
+          >
+            Stok Menipis
+          </button>
+          <button
+            onClick={() => setStatusFilter('out')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'out'
+                ? 'bg-red-500 text-white'
+                : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+            }`}
+          >
+            Stok Habis
+          </button>
         </div>
       </div>
 

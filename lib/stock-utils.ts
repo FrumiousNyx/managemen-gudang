@@ -6,11 +6,11 @@ export interface StockStatus {
 }
 
 /**
- * Get stock threshold based on product name category
+ * Get stock threshold based on product name category (fallback for legacy data)
  */
-export function getStockThreshold(productName: string): number {
+export function getStockThresholdByName(productName: string): number {
   const lowerName = productName.toLowerCase()
-  
+
   if (lowerName.includes('lina')) {
     return 60
   } else if (lowerName.includes('rocela')) {
@@ -20,9 +20,21 @@ export function getStockThreshold(productName: string): number {
   } else if (lowerName.includes('asimetri')) {
     return 60
   }
-  
+
   // Default threshold
   return 40
+}
+
+/**
+ * Get stock threshold from product (database field with fallback)
+ */
+export function getStockThreshold(product: Product): number {
+  // Prefer database field if available and valid
+  if (product.stock_threshold && product.stock_threshold > 0) {
+    return product.stock_threshold
+  }
+  // Fallback to name-based logic for legacy data
+  return getStockThresholdByName(product.name)
 }
 
 /**
@@ -30,7 +42,7 @@ export function getStockThreshold(productName: string): number {
  * This ensures consistency across Dashboard, Products, and History pages
  */
 export function getStockStatus(product: Product): StockStatus {
-  const threshold = getStockThreshold(product.name)
+  const threshold = getStockThreshold(product)
   
   if (product.stock === 0) {
     return {
@@ -56,6 +68,6 @@ export function getStockStatus(product: Product): StockStatus {
  * Check if a product is considered low stock
  */
 export function isLowStock(product: Product): boolean {
-  const threshold = getStockThreshold(product.name)
+  const threshold = getStockThreshold(product)
   return product.stock < threshold
 }

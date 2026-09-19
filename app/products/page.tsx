@@ -18,7 +18,10 @@ export default function Products() {
   const [selectedProductForLabel, setSelectedProductForLabel] = useState<Product | null>(null)
   const [selectedProductForStock, setSelectedProductForStock] = useState<Product | null>(null)
   const [stockValue, setStockValue] = useState('')
+  const [thresholdValue, setThresholdValue] = useState('')
+  const [adjustmentReason, setAdjustmentReason] = useState('')
   const [bulkStockValue, setBulkStockValue] = useState('')
+  const [bulkAdjustmentReason, setBulkAdjustmentReason] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     color: '',
@@ -33,6 +36,7 @@ export default function Products() {
     errors: []
   })
   const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'low' | 'out'>('all')
   const [sortBy, setSortBy] = useState<'name' | 'stock' | 'status'>('status')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set())
@@ -65,10 +69,23 @@ export default function Products() {
   }
 
   const filteredProducts = products.filter((product) => {
-    if (!searchQuery.trim()) return true
-    const keywords = searchQuery.toLowerCase().trim().split(/\s+/)
-    const searchTarget = `${product.sku} ${product.name} ${product.color} ${product.size}`.toLowerCase()
-    return keywords.every((keyword) => searchTarget.includes(keyword))
+    // Search filter
+    if (searchQuery.trim()) {
+      const keywords = searchQuery.toLowerCase().trim().split(/\s+/)
+      const searchTarget = `${product.sku} ${product.name} ${product.color} ${product.size}`.toLowerCase()
+      if (!keywords.every((keyword) => searchTarget.includes(keyword))) {
+        return false
+      }
+    }
+
+    // Status filter
+    if (statusFilter === 'low') {
+      return isLowStock(product) && product.stock > 0
+    } else if (statusFilter === 'out') {
+      return product.stock === 0
+    }
+
+    return true
   })
 
   // Custom size order for sorting
@@ -124,6 +141,7 @@ export default function Products() {
       Warna: product.color,
       Ukuran: product.size,
       Stok: product.stock,
+      Threshold: product.stock_threshold || 40,
       Status: getStockStatus(product).label
     }))
 
@@ -138,6 +156,7 @@ export default function Products() {
       { wch: 10 }, // Warna
       { wch: 8 },  // Ukuran
       { wch: 8 },  // Stok
+      { wch: 10 }, // Threshold
       { wch: 10 }  // Status
     ]
 
@@ -181,6 +200,7 @@ export default function Products() {
           const color = row['Warna'] || row['color'] || row['Color']
           const size = row['Ukuran'] || row['size'] || row['Size']
           const stock = row['Stok'] || row['stock'] || row['Stock'] || 0
+          const stock_threshold = row['Threshold'] || row['threshold'] || row['Threshold Stok'] || 40
 
           if (!sku || !name || !color || !size) {
             errors.push(`Baris ${jsonData.indexOf(row) + 1}: Data tidak lengkap (SKU, Nama, Warna, Ukuran wajib diisi)`)
@@ -209,7 +229,8 @@ export default function Products() {
               name,
               color,
               size,
-              stock: parseInt(stock) || 0
+              stock: parseInt(stock) || 0,
+              stock_threshold: parseInt(stock_threshold) || 40
             })
 
           if (error) throw error
@@ -248,14 +269,16 @@ export default function Products() {
         'Nama Produk': 'Contoh Produk',
         Warna: 'Hitam',
         Ukuran: 'L',
-        Stok: 10
+        Stok: 10,
+        Threshold: 40
       },
       {
         SKU: 'PROD-002',
         'Nama Produk': 'Contoh Produk',
         Warna: 'Putih',
         Ukuran: 'XL',
-        Stok: 5
+        Stok: 5,
+        Threshold: 40
       }
     ]
 
@@ -268,7 +291,8 @@ export default function Products() {
       { wch: 25 }, // Nama Produk
       { wch: 10 }, // Warna
       { wch: 8 },  // Ukuran
-      { wch: 8 }   // Stok
+      { wch: 8 },  // Stok
+      { wch: 10 }  // Threshold
     ]
 
     XLSX.writeFile(workbook, 'template-import-produk.xlsx')
@@ -326,9 +350,14 @@ export default function Products() {
 
   const handleBulkStockUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!supabase || selectedProducts.size === 0) {
       showToast('error', 'Koneksi database tidak dikonfigurasi atau tidak ada produk dipilih')
+      return
+    }
+
+    if (!bulkAdjustmentReason) {
+      showToast('error', 'Silakan pilih alasan penyesuaian stok')
       return
     }
 
@@ -365,7 +394,7 @@ export default function Products() {
             product_id: productId,
             type: adjustment > 0 ? 'INBOUND_QC' : 'OUTBOUND_PACKING',
             qty: adjustment,
-            notes: 'Penyesuaian stok massal dari halaman Produk'
+            notes: `Penyesuaian stok massal dari halaman Produk - ${bulkAdjustmentReason}`
           })
 
         if (logError) throw logError
@@ -374,6 +403,7 @@ export default function Products() {
       showToast('success', `Stok ${selectedProducts.size} produk berhasil diperbarui`)
       setIsBulkStockModalOpen(false)
       setBulkStockValue('')
+      setBulkAdjustmentReason('')
       setSelectedProducts(new Set())
       setShowBulkActions(false)
       await fetchProducts()
@@ -475,9 +505,14 @@ export default function Products() {
 
   const handleUpdateStock = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!supabase || !selectedProductForStock) {
       showToast('error', 'Koneksi database tidak dikonfigurasi')
+      return
+    }
+
+    if (!adjustmentReason) {
+      showToast('error', 'Silakan pilih alasan penyesuaian stok')
       return
     }
 
@@ -487,15 +522,21 @@ export default function Products() {
       return
     }
 
+    const newThreshold = parseInt(thresholdValue)
+    if (isNaN(newThreshold) || newThreshold <= 0) {
+      showToast('error', 'Threshold harus berupa angka positif')
+      return
+    }
+
     setLoading(true)
 
     try {
       const stockDiff = newStock - selectedProductForStock.stock
-      
-      // Update product stock
+
+      // Update product stock and threshold
       const { error: updateError } = await supabase
         .from('products')
-        .update({ stock: newStock })
+        .update({ stock: newStock, stock_threshold: newThreshold })
         .eq('id', selectedProductForStock.id)
 
       if (updateError) throw updateError
@@ -508,16 +549,18 @@ export default function Products() {
             product_id: selectedProductForStock.id,
             type: stockDiff > 0 ? 'INBOUND_QC' : 'OUTBOUND_PACKING',
             qty: stockDiff,
-            notes: 'Penyesuaian stok manual dari halaman Produk'
+            notes: `Penyesuaian stok manual dari halaman Produk - ${adjustmentReason}`
           })
 
         if (logError) throw logError
       }
 
-      showToast('success', 'Stok berhasil diperbarui')
+      showToast('success', 'Stok dan threshold berhasil diperbarui')
       setIsStockModalOpen(false)
       setSelectedProductForStock(null)
       setStockValue('')
+      setThresholdValue('')
+      setAdjustmentReason('')
       await fetchProducts()
     } catch (error) {
       console.error('Error updating stock:', error)
@@ -711,7 +754,7 @@ export default function Products() {
 
       {/* Search Bar */}
       <div className="mb-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
-        <div className="relative">
+        <div className="relative mb-3">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
           <input
             type="text"
@@ -729,8 +772,43 @@ export default function Products() {
             </button>
           )}
         </div>
-        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-2">
-          {searchQuery ? `Ditemukan ${sortedProducts.length} produk` : `Total ${products.length} produk`}
+
+        {/* Status Filters */}
+        <div className="flex flex-wrap gap-2 mb-2">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'all'
+                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800'
+                : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+            }`}
+          >
+            Semua
+          </button>
+          <button
+            onClick={() => setStatusFilter('low')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'low'
+                ? 'bg-amber-500 text-white'
+                : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+            }`}
+          >
+            Stok Menipis
+          </button>
+          <button
+            onClick={() => setStatusFilter('out')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'out'
+                ? 'bg-red-500 text-white'
+                : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+            }`}
+          >
+            Stok Habis
+          </button>
+        </div>
+
+        <p className="text-xs text-slate-500 dark:text-zinc-400">
+          {searchQuery || statusFilter !== 'all' ? `Ditemukan ${sortedProducts.length} produk` : `Total ${products.length} produk`}
         </p>
       </div>
 
@@ -864,6 +942,7 @@ export default function Products() {
                           onClick={() => {
                             setSelectedProductForStock(product)
                             setStockValue(product.stock.toString())
+                            setThresholdValue((product.stock_threshold || 40).toString())
                             setIsStockModalOpen(true)
                           }}
                           className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors"
@@ -939,6 +1018,7 @@ export default function Products() {
                   onClick={() => {
                     setSelectedProductForStock(product)
                     setStockValue(product.stock.toString())
+                    setThresholdValue((product.stock_threshold || 40).toString())
                     setIsStockModalOpen(true)
                   }}
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors"
@@ -1089,7 +1169,7 @@ export default function Products() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Edit Stok</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Edit Stok & Threshold</h2>
               <button
                 onClick={() => setIsStockModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
@@ -1122,6 +1202,42 @@ export default function Products() {
                   <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
                     Stok saat ini: {selectedProductForStock.stock}
                   </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
+                    Threshold Stok Minimum
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={thresholdValue}
+                    onChange={(e) => setThresholdValue(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg font-semibold"
+                    required
+                  />
+                  <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
+                    Stok di bawah nilai ini akan ditandai sebagai "Menipis"
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
+                    Alasan Penyesuaian <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={adjustmentReason}
+                    onChange={(e) => setAdjustmentReason(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                    required
+                  >
+                    <option value="">Pilih alasan...</option>
+                    <option value="Perbaikan">Perbaikan</option>
+                    <option value="Kerusakan">Kerusakan</option>
+                    <option value="Transfer">Transfer</option>
+                    <option value="Selisih">Selisih</option>
+                    <option value="Restock">Restock</option>
+                  </select>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -1246,6 +1362,25 @@ export default function Products() {
                   <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
                     Contoh: 10 untuk tambah 10, -5 untuk kurangi 5
                   </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
+                    Alasan Penyesuaian <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={bulkAdjustmentReason}
+                    onChange={(e) => setBulkAdjustmentReason(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                    required
+                  >
+                    <option value="">Pilih alasan...</option>
+                    <option value="Perbaikan">Perbaikan</option>
+                    <option value="Kerusakan">Kerusakan</option>
+                    <option value="Transfer">Transfer</option>
+                    <option value="Selisih">Selisih</option>
+                    <option value="Restock">Restock</option>
+                  </select>
                 </div>
 
                 <div className="flex gap-3 pt-4">

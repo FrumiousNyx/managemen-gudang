@@ -17,6 +17,8 @@ export default function QCInbound() {
   const [quantity, setQuantity] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
+  const [batchMode, setBatchMode] = useState(false)
+  const [batchItems, setBatchItems] = useState<{ product: Product; quantity: number }[]>([])
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function QCInbound() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!supabase) {
       showToast('error', 'Koneksi database tidak dikonfigurasi')
       return
@@ -83,48 +85,147 @@ export default function QCInbound() {
       return
     }
 
-    setLoading(true)
+    if (batchMode) {
+      // Add to batch
+      const existingIndex = batchItems.findIndex(item => item.product.id === selectedProduct.id)
+      if (existingIndex >= 0) {
+        // Update existing item
+        const updatedBatch = [...batchItems]
+        updatedBatch[existingIndex].quantity += qty
+        setBatchItems(updatedBatch)
+        showToast('success', `Diperbarui: ${selectedProduct.name} (${updatedBatch[existingIndex].quantity} unit)`)
+      } else {
+        // Add new item
+        setBatchItems([...batchItems, { product: selectedProduct, quantity: qty }])
+        showToast('success', `Ditambahkan: ${selectedProduct.name} (${qty} unit)`)
+      }
 
-    try {
-      // Update product stock
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({ stock: selectedProduct.stock + qty })
-        .eq('id', selectedProduct.id)
-
-      if (updateError) throw updateError
-
-      // Insert inventory log
-      const { error: logError } = await supabase
-        .from('inventory_logs')
-        .insert({
-          product_id: selectedProduct.id,
-          type: 'INBOUND_QC',
-          qty: qty,
-          notes: `Barang masuk QC: ${qty} unit`
-        })
-
-      if (logError) throw logError
-
-      showToast('success', `Berhasil menambahkan ${qty} unit ke ${selectedProduct.name}`)
-      
-      // Clear cache to force refresh
-      cache.delete(CACHE_KEYS.PRODUCTS)
-      
-      // Reset form
+      // Reset form for next item
       setSelectedProduct(null)
       setQuantity('')
       setSearchTerm('')
-      
+    } else {
+      // Single product mode - process immediately
+      setLoading(true)
+
+      try {
+        // Update product stock
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ stock: selectedProduct.stock + qty })
+          .eq('id', selectedProduct.id)
+
+        if (updateError) throw updateError
+
+        // Insert inventory log
+        const { error: logError } = await supabase
+          .from('inventory_logs')
+          .insert({
+            product_id: selectedProduct.id,
+            type: 'INBOUND_QC',
+            qty: qty,
+            notes: `Barang masuk QC: ${qty} unit`
+          })
+
+        if (logError) throw logError
+
+        showToast('success', `Berhasil menambahkan ${qty} unit ke ${selectedProduct.name}`)
+
+        // Clear cache to force refresh
+        cache.delete(CACHE_KEYS.PRODUCTS)
+
+        // Reset form
+        setSelectedProduct(null)
+        setQuantity('')
+        setSearchTerm('')
+
+        // Refresh products and router
+        await fetchProducts()
+        router.refresh()
+      } catch (error) {
+        console.error('Error adding stock:', error)
+        showToast('error', 'Gagal menambah stok')
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
+
+  const handleBatchSubmit = async () => {
+    if (!supabase) {
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
+      return
+    }
+
+    if (batchItems.length === 0) {
+      showToast('error', 'Tidak ada item dalam batch')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      let successCount = 0
+      let failedCount = 0
+
+      for (const item of batchItems) {
+        try {
+          // Update product stock
+          const { error: updateError } = await supabase
+            .from('products')
+            .update({ stock: item.product.stock + item.quantity })
+            .eq('id', item.product.id)
+
+          if (updateError) throw updateError
+
+          // Insert inventory log
+          const { error: logError } = await supabase
+            .from('inventory_logs')
+            .insert({
+              product_id: item.product.id,
+              type: 'INBOUND_QC',
+              qty: item.quantity,
+              notes: `Barang masuk QC (batch): ${item.quantity} unit`
+            })
+
+          if (logError) throw logError
+
+          successCount++
+        } catch (error) {
+          console.error(`Error processing ${item.product.name}:`, error)
+          failedCount++
+        }
+      }
+
+      // Clear cache to force refresh
+      cache.delete(CACHE_KEYS.PRODUCTS)
+
+      showToast('success', `Batch selesai: ${successCount} berhasil, ${failedCount} gagal`)
+
+      // Reset form
+      setBatchItems([])
+      setSelectedProduct(null)
+      setQuantity('')
+      setSearchTerm('')
+      setBatchMode(false)
+
       // Refresh products and router
       await fetchProducts()
       router.refresh()
     } catch (error) {
-      console.error('Error adding stock:', error)
-      showToast('error', 'Gagal menambah stok')
+      console.error('Error processing batch:', error)
+      showToast('error', 'Gagal memproses batch')
     } finally {
       setLoading(false)
     }
+  }
+
+  const removeBatchItem = (productId: string) => {
+    setBatchItems(batchItems.filter(item => item.product.id !== productId))
+  }
+
+  const clearBatch = () => {
+    setBatchItems([])
   }
 
   const handlePrintLabel = (product: Product) => {
@@ -242,6 +343,75 @@ export default function QCInbound() {
       </div>
 
       <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4 sm:p-8">
+        {/* Batch Mode Toggle */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-slate-700 dark:text-zinc-400">Mode Batch</label>
+            <button
+              type="button"
+              onClick={() => setBatchMode(!batchMode)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                batchMode ? 'bg-slate-900 dark:bg-zinc-100' : 'bg-slate-200 dark:bg-zinc-700'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  batchMode ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          {batchMode && batchItems.length > 0 && (
+            <button
+              type="button"
+              onClick={clearBatch}
+              className="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+            >
+              Hapus Semua
+            </button>
+          )}
+        </div>
+
+        {/* Batch Items List */}
+        {batchMode && batchItems.length > 0 && (
+          <div className="mb-6 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-xl p-4">
+            <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Item Batch ({batchItems.length})</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {batchItems.map((item) => (
+                <div
+                  key={item.product.id}
+                  className="flex items-center justify-between bg-white dark:bg-zinc-800 p-3 rounded-lg border border-slate-200 dark:border-zinc-800"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-slate-900 dark:text-zinc-100">{item.product.name}</div>
+                    <div className="text-xs text-slate-500 dark:text-zinc-400">
+                      {item.product.sku} | {item.product.color} / {item.product.size}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-slate-900 dark:text-zinc-100">{item.quantity} unit</span>
+                    <button
+                      type="button"
+                      onClick={() => removeBatchItem(item.product.id)}
+                      className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={handleBatchSubmit}
+              disabled={loading}
+              className="mt-4 w-full flex items-center justify-center px-4 py-3 bg-emerald-600 dark:bg-emerald-500 text-white font-medium rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:focus:ring-emerald-500 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
+            >
+              {loading ? 'Memproses...' : 'Proses Semua Batch'}
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Product Selection */}
           <div>
@@ -352,7 +522,7 @@ export default function QCInbound() {
             ) : (
               <>
                 <Plus className="h-5 w-5 mr-2" />
-                Tambah Stok Gudang
+                {batchMode ? 'Tambah ke Batch' : 'Tambah Stok Gudang'}
               </>
             )}
           </button>
@@ -365,7 +535,8 @@ export default function QCInbound() {
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
           <li>• Cari dan pilih produk SKU dari dropdown</li>
           <li>• Masukkan jumlah barang yang masuk</li>
-          <li>• Klik "Tambah Stok Gudang" untuk menambah stok ke gudang</li>
+          <li>• Mode Normal: Klik "Tambah Stok Gudang" untuk langsung menambah stok</li>
+          <li>• Mode Batch: Nyalakan toggle untuk menambahkan multiple produk sekaligus, lalu klik "Proses Semua Batch"</li>
           <li>• Klik "Cetak Label" untuk mencetak label thermal 33x19mm atau 40x20mm</li>
           <li>• Transaksi akan dicatat dalam riwayat inventaris</li>
         </ul>

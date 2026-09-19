@@ -43,19 +43,19 @@ if (error) {
 }
 ```
 
-#### In `middleware.ts`:
-Uncomment the authentication check:
+#### Di file `middleware.ts`:
+Aktifkan pengecekan login:
 ```typescript
-// If trying to access protected routes without authentication, redirect to login
+// Jika mencoba akses halaman tanpa login, arahkan ke halaman login
 if (!isLoginPage && !hasSession) {
   return NextResponse.redirect(new URL('/login', request.url))
 }
 ```
 
-#### In `components/navigation.tsx`:
-Uncomment the authentication check:
+#### Di file `components/navigation.tsx`:
+Aktifkan pengecekan login:
 ```typescript
-// Don't show navigation if not authenticated (and not loading)
+// Jangan tampilkan navigasi jika belum login (dan sedang loading)
 if (!loading && !user) {
   return null
 }

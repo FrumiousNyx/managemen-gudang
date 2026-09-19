@@ -41,10 +41,10 @@ cd inventory-app
 
 Ini akan membuat:
 - Tabel `products` dengan data sampel
-- Tabel `inventory_logs` untuk audit trail
+- Tabel `inventory_logs` untuk riwayat transaksi
 - Index yang diperlukan untuk performa
 - Fungsi helper untuk update stok (`update_stock_with_log`)
-- Fungsi RPC atomik untuk pengurangan stok aman (`deduct_product_stock`) untuk mencegah race conditions
+- Fungsi RPC aman untuk pengurangan stok (`deduct_product_stock`) untuk mencegah konflik
 
 ### 2.3 Dapatkan Kredensial Supabase
 
@@ -85,10 +85,10 @@ Aplikasi akan tersedia di [http://localhost:3000](http://localhost:3000)
 - Indikator status stok (Aman/Menipis/Habis)
 - Tabel data responsif
 
-### Input QC (Masuk)
+### Input Barang Masuk
 - Cari dan pilih SKU produk
-- Masukkan jumlah barang yang lulus QC
-- Penambahan stok otomatis dan logging audit
+- Masukkan jumlah barang yang masuk
+- Penambahan stok otomatis dan pencatatan
 - Notifikasi toast untuk sukses/error
 
 ### Pindai Keluar (Pengemasan)
@@ -97,7 +97,7 @@ Aplikasi akan tersedia di [http://localhost:3000](http://localhost:3000)
 - **Mode Banyak Pindai**: Masukkan jumlah terlebih dahulu, lalu pindai barcode sekali untuk mengurangi banyak unit
 - **Keamanan Auto-Reset**: Jumlah otomatis reset ke 1 setiap setiap pindai banyak untuk mencegah error
 - **Validasi Stok**: Mencegah overselling dengan pesan error yang jelas menampilkan sisa stok
-- **Operasi Atomik**: Menggunakan Supabase RPC untuk mencegah race conditions di lingkungan multi-user
+- **Operasi Aman**: Menggunakan Supabase RPC untuk mencegah konflik di lingkungan multi-user
 - Input auto-focused untuk pemindai barcode
 - Feedback audio (beep sukses/error)
 - Tampilan item yang baru dipindai dengan informasi jumlah
@@ -125,13 +125,13 @@ Sistem pengemasan sekarang mendukung dua mode pemindaian untuk fleksibilitas ope
 - Keamanan: Jumlah auto-reset ke 1 setiap setiap pindai sukses
 - Kasus penggunaan: Saat mengemas 50 unit dari SKU yang sama
 
-### Operasi Database Atomik
-Sistem menggunakan row-level locking PostgreSQL melalui fungsi RPC Supabase untuk mencegah race conditions:
+### Operasi Database Aman
+Sistem menggunakan penguncian baris PostgreSQL melalui fungsi RPC Supabase untuk mencegah konflik:
 
 - **Masalah**: Beberapa staf memindai SKU yang sama secara bersamaan bisa menyebabkan stok menjadi negatif
 - **Solusi**: Fungsi `deduct_product_stock` menggunakan `FOR UPDATE` untuk mengunci baris selama transaksi
 - **Manfaat**: Menjamin stok tidak pernah di bawah nol, bahkan dengan pindai bersamaan
-- **Implementasi**: Operasi atomik aman dengan penanganan error yang benar
+- **Implementasi**: Operasi aman dengan penanganan error yang benar
 
 ### Validasi Stok
 - Pengecekan stok real-time sebelum pengurangan

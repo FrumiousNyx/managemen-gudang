@@ -8,11 +8,11 @@ Aplikasi web manajemen inventaris yang siap produksi, ramah mobile untuk merek p
 - Metrik inventaris real-time dengan fungsi pencarian
 - Filter berdasarkan Nama, SKU, Warna, atau Ukuran
 - Indikator status stok (Aman/Menipis/Habis)
-- Tampilan responsive untuk desktop dan mobile
+- Tampilan cocok untuk desktop dan mobile
 - Skeleton loading states untuk UX yang lebih baik
 
-### 📥 Input QC (Barang Masuk)
-- Tambah produk yang lulus quality control ke stok gudang
+### 📥 Input Barang Masuk
+- Tambah barang masuk ke stok gudang
 - Cetak label thermal 50x30mm dengan QR Code
 - Label menampilkan: QR Code, Nama Produk, Warna/Ukuran, SKU
 - Audit trail otomatis untuk setiap transaksi
@@ -21,7 +21,7 @@ Aplikasi web manajemen inventaris yang siap produksi, ramah mobile untuk merek p
 - Pemindaian barcode multi-mode (Satu/Banyak)
 - Mode Satu Pindai: Setiap pindai mengurangi 1 unit
 - Mode Banyak Pindai: Masukkan jumlah, pindai sekali untuk mengurangi banyak unit
-- Operasi database atomik untuk mencegah race conditions
+- Operasi database aman untuk mencegah konflik
 - Validasi stok real-time untuk mencegah overselling
 - Feedback audio untuk sukses/error
 - Support kamera dan barcode scanner USB/Bluetooth
@@ -152,14 +152,14 @@ Aplikasi menggunakan Supabase PostgreSQL dengan tabel berikut:
 ### `inventory_logs`
 - `id`: UUID (Primary Key)
 - `product_id`: UUID (Foreign Key ke products)
-- `type`: TEXT - Tipe transaksi (INBOUND_QC/OUTBOUND_PACKING)
+- `type`: TEXT - Tipe transaksi (Barang Masuk/Barang Keluar)
 - `qty`: INTEGER - Jumlah perubahan stok
 - `notes`: TEXT - Catatan transaksi
 - `created_at`: TIMESTAMP - Waktu transaksi
 
 ### Database Functions
 - `update_stock_with_log`: Update stok dan log transaksi
-- `deduct_product_stock`: Fungsi atomik untuk pengurangan stok aman
+- `deduct_product_stock`: Fungsi aman untuk pengurangan stok
 
 ### Indexes
 - `idx_products_sku`: Index untuk pencarian SKU

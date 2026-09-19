@@ -365,7 +365,7 @@ export default function Products() {
             product_id: productId,
             type: adjustment > 0 ? 'INBOUND_QC' : 'OUTBOUND_PACKING',
             qty: adjustment,
-            notes: 'Bulk stock adjustment via Products page'
+            notes: 'Penyesuaian stok massal dari halaman Produk'
           })
 
         if (logError) throw logError
@@ -508,7 +508,7 @@ export default function Products() {
             product_id: selectedProductForStock.id,
             type: stockDiff > 0 ? 'INBOUND_QC' : 'OUTBOUND_PACKING',
             qty: stockDiff,
-            notes: 'Manual stock adjustment via Products page'
+            notes: 'Penyesuaian stok manual dari halaman Produk'
           })
 
         if (logError) throw logError

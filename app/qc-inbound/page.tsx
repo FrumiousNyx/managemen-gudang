@@ -101,7 +101,7 @@ export default function QCInbound() {
           product_id: selectedProduct.id,
           type: 'INBOUND_QC',
           qty: qty,
-          notes: `QC Inbound: ${qty} units`
+          notes: `Barang masuk QC: ${qty} unit`
         })
 
       if (logError) throw logError
@@ -238,7 +238,7 @@ export default function QCInbound() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Barang Masuk</h1>
-        <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Tambah produk yang lulus quality control ke stok gudang</p>
+        <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Tambah barang masuk ke stok gudang</p>
       </div>
 
       <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4 sm:p-8">
@@ -325,7 +325,7 @@ export default function QCInbound() {
           {/* Quantity Input */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-3">
-              Jumlah (Jumlah QC yang Lulus)
+              Jumlah Barang
             </label>
             <input
               type="number"
@@ -364,10 +364,10 @@ export default function QCInbound() {
         <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
           <li>• Cari dan pilih produk SKU dari dropdown</li>
-          <li>• Masukkan jumlah barang yang lulus QC</li>
+          <li>• Masukkan jumlah barang yang masuk</li>
           <li>• Klik "Tambah Stok Gudang" untuk menambah stok ke gudang</li>
           <li>• Klik "Cetak Label" untuk mencetak label thermal 50x30mm</li>
-          <li>• Transaksi akan dicatat dalam audit trail inventaris</li>
+          <li>• Transaksi akan dicatat dalam riwayat inventaris</li>
         </ul>
         
         <div className="mt-4 pt-4 border-t border-slate-200 dark:border-zinc-800">

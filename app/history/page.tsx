@@ -327,7 +327,7 @@ export default function History() {
               className={`px-4 py-2 rounded-xl font-medium transition-all ${
                 filter === 'all'
                   ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800'
-                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
               }`}
             >
               Semua
@@ -337,7 +337,7 @@ export default function History() {
               className={`px-4 py-2 rounded-xl font-medium transition-all ${
                 filter === 'inbound'
                   ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
-                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
               }`}
             >
               Barang Masuk
@@ -347,7 +347,7 @@ export default function History() {
               className={`px-4 py-2 rounded-xl font-medium transition-all ${
                 filter === 'outbound'
                   ? 'bg-red-600 dark:bg-red-500 text-white'
-                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
               }`}
             >
               Barang Keluar
@@ -359,7 +359,7 @@ export default function History() {
             <Calendar className="h-5 w-5 text-slate-600 dark:text-zinc-400 mt-6 sm:mt-0" />
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-1">
                   Dari Tanggal
                 </label>
                 <input
@@ -370,7 +370,7 @@ export default function History() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-1">
                   Sampai Tanggal
                 </label>
                 <input
@@ -501,7 +501,7 @@ export default function History() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
+                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     <span className="hidden sm:inline">Sebelumnya</span>
@@ -510,7 +510,7 @@ export default function History() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
+                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
                   >
                     <span className="hidden sm:inline">Selanjutnya</span>
                     <span className="sm:hidden">Next</span>
@@ -541,7 +541,7 @@ export default function History() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowClearConfirm(false)}
-                className="flex-1 px-4 py-2 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all"
+                className="flex-1 px-4 py-2 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all"
               >
                 Batal
               </button>

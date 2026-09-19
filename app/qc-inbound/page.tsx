@@ -245,7 +245,7 @@ export default function QCInbound() {
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Product Selection */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-3">
+            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-3">
               Pilih Produk SKU
             </label>
             <div className="relative">
@@ -324,7 +324,7 @@ export default function QCInbound() {
 
           {/* Quantity Input */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-3">
+            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-3">
               Jumlah (Jumlah QC yang Lulus)
             </label>
             <input
@@ -429,7 +429,7 @@ export default function QCInbound() {
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={() => setIsLabelModalOpen(false)}
-                  className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                  className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
                   Batal
                 </button>

@@ -447,7 +447,7 @@ export default function PackingOutbound() {
               className={`flex items-center px-4 py-2 rounded-xl font-medium transition-all ${
                 scanMode === 'single'
                   ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800'
-                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
               }`}
             >
               <Zap className="h-4 w-4 mr-2" />
@@ -458,7 +458,7 @@ export default function PackingOutbound() {
               className={`flex items-center px-4 py-2 rounded-xl font-medium transition-all ${
                 scanMode === 'bulk'
                   ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800'
-                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
               }`}
             >
               <Layers className="h-4 w-4 mr-2" />
@@ -470,7 +470,7 @@ export default function PackingOutbound() {
         {/* Camera/Barcode Scanner Input */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300">
+            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400">
               Metode Pindai
             </label>
             <button
@@ -478,7 +478,7 @@ export default function PackingOutbound() {
               className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 isCameraActive
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
               }`}
             >
               {isCameraActive ? (
@@ -502,7 +502,7 @@ export default function PackingOutbound() {
               </div>
               {scanMode === 'bulk' && (
                 <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-slate-700 dark:text-zinc-300 whitespace-nowrap">
+                  <label className="text-sm font-medium text-slate-700 dark:text-zinc-400 whitespace-nowrap">
                     Jumlah:
                   </label>
                   <input

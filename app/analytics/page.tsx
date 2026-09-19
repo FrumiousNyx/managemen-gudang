@@ -437,7 +437,7 @@ export default function Analytics() {
         </div>
         <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
               Tanggal Mulai
             </label>
             <input
@@ -448,7 +448,7 @@ export default function Analytics() {
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
               Tanggal Akhir
             </label>
             <input
@@ -467,7 +467,7 @@ export default function Analytics() {
             </button>
             <button
               onClick={resetFilter}
-              className="px-6 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+              className="px-6 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
             >
               Reset
             </button>

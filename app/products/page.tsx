@@ -640,7 +640,7 @@ export default function Products() {
           <button
             onClick={exportToExcel}
             disabled={sortedProducts.length === 0}
-            className="flex items-center justify-center px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all flex-1 sm:flex-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all flex-1 sm:flex-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="h-5 w-5 mr-2" />
             Export Excel
@@ -696,7 +696,7 @@ export default function Products() {
                 setSelectedProducts(new Set())
                 setShowBulkActions(false)
               }}
-              className="flex items-center px-3 py-2 text-slate-700 dark:text-zinc-300 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors"
+              className="flex items-center px-3 py-2 text-slate-700 dark:text-zinc-400 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors"
             >
               Batal
             </button>
@@ -737,7 +737,7 @@ export default function Products() {
             className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               sortBy === 'name' 
                 ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800' 
-                : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400'
             }`}
           >
             Nama
@@ -747,7 +747,7 @@ export default function Products() {
             className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               sortBy === 'stock' 
                 ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800' 
-                : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400'
             }`}
           >
             Stok
@@ -757,7 +757,7 @@ export default function Products() {
             className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               sortBy === 'status' 
                 ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800' 
-                : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400'
             }`}
           >
             Status
@@ -985,7 +985,7 @@ export default function Products() {
             
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
                   Nama Produk
                 </label>
                 <input
@@ -999,7 +999,7 @@ export default function Products() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
                   Warna
                 </label>
                 <input
@@ -1013,7 +1013,7 @@ export default function Products() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
                   Ukuran
                 </label>
                 <input
@@ -1027,7 +1027,7 @@ export default function Products() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
                   Kode SKU Barcode
                 </label>
                 <input
@@ -1047,7 +1047,7 @@ export default function Products() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                  className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
                   Batal
                 </button>
@@ -1112,7 +1112,7 @@ export default function Products() {
 
               <form onSubmit={handleUpdateStock} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
                     Jumlah Stok Baru
                   </label>
                   <input
@@ -1133,7 +1133,7 @@ export default function Products() {
                   <button
                     type="button"
                     onClick={() => setIsStockModalOpen(false)}
-                    className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                    className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                   >
                     Batal
                   </button>
@@ -1200,7 +1200,7 @@ export default function Products() {
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={() => setIsLabelModalOpen(false)}
-                  className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                  className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
                   Batal
                 </button>
@@ -1237,7 +1237,7 @@ export default function Products() {
               
               <form onSubmit={handleBulkStockUpdate} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
                     Penyesuaian Stok
                   </label>
                   <input
@@ -1257,7 +1257,7 @@ export default function Products() {
                   <button
                     type="button"
                     onClick={() => setIsBulkStockModalOpen(false)}
-                    className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                    className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                   >
                     Batal
                   </button>
@@ -1376,7 +1376,7 @@ export default function Products() {
                         onClick={() => {
                           setImportResults({ success: 0, failed: 0, errors: [] })
                         }}
-                        className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                        className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                       >
                         Import Lagi
                       </button>

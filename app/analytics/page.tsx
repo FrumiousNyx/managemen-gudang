@@ -611,7 +611,7 @@ export default function Analytics() {
                     color: '#f1f5f9'
                   }}
                   itemStyle={{ color: '#f1f5f9' }}
-                  formatter={(value: number) => [`${value || 0} unit`, 'Penjualan']}
+                  formatter={(value) => [`${value || 0} unit`, 'Penjualan']}
                 />
                 <Bar dataKey="total_qty" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -661,7 +661,7 @@ export default function Analytics() {
                     color: '#f1f5f9'
                   }}
                   itemStyle={{ color: '#f1f5f9' }}
-                  formatter={(value: number) => [`${value || 0} unit`, 'Penjualan']}
+                  formatter={(value) => [`${value || 0} unit`, 'Penjualan']}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -706,7 +706,7 @@ export default function Analytics() {
                     color: '#f1f5f9'
                   }}
                   itemStyle={{ color: '#f1f5f9' }}
-                  formatter={(value: number) => [`${value || 0} unit`, 'Penjualan']}
+                  formatter={(value) => [`${value || 0} unit`, 'Penjualan']}
                 />
                 <Bar dataKey="qty" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
               </BarChart>

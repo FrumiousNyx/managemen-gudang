@@ -8,6 +8,7 @@ import { CardSkeleton, Skeleton } from '@/components/skeleton'
 import { TrendingUp, Package, Calendar, BarChart3, ArrowUp, Download } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { LineChart, Line, Bar, BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface InventoryLog {
   id: string
@@ -30,6 +31,25 @@ interface ProductSales {
   color: string
   size: string
 }
+
+interface SalesTrendData {
+  date: string
+  sales: number
+}
+
+interface ProductChartData {
+  name: string
+  sku: string
+  sales: number
+}
+
+interface ColorChartData {
+  name: string
+  value: number
+  color: string
+}
+
+const COLORS = ['#0f766e', '#1d4ed8', '#7c3aed', '#ea580c', '#0891b2', '#dc2626', '#65a30d', '#9333ea']
 
 export default function Analytics() {
   const [logs, setLogs] = useState<InventoryLog[]>([])
@@ -134,6 +154,50 @@ export default function Analytics() {
     return filteredLogs
       .filter(log => new Date(log.created_at) >= monthAgo)
       .reduce((sum, log) => sum + Math.abs(log.qty), 0)
+  }
+
+  // Prepare data for charts
+  const getSalesTrendData = (): SalesTrendData[] => {
+    const trendMap = new Map<string, number>()
+    
+    filteredLogs.forEach(log => {
+      const date = new Date(log.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })
+      const current = trendMap.get(date) || 0
+      trendMap.set(date, current + Math.abs(log.qty))
+    })
+
+    return Array.from(trendMap.entries())
+      .map(([date, sales]) => ({ date, sales }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  }
+
+  const getProductChartData = (): ProductChartData[] => {
+    const productMap = new Map<string, { name: string; sku: string; sales: number }>()
+    
+    filteredLogs.forEach(log => {
+      const key = log.product.sku
+      const current = productMap.get(key) || { name: log.product.name, sku: log.product.sku, sales: 0 }
+      current.sales += Math.abs(log.qty)
+      productMap.set(key, current)
+    })
+
+    return Array.from(productMap.values())
+      .sort((a, b) => b.sales - a.sales)
+      .slice(0, 10)
+  }
+
+  const getColorChartData = (): ColorChartData[] => {
+    const colorMap = new Map<string, number>()
+    
+    filteredLogs.forEach(log => {
+      const color = log.product.color
+      const current = colorMap.get(color) || 0
+      colorMap.set(color, current + Math.abs(log.qty))
+    })
+
+    return Array.from(colorMap.entries())
+      .map(([name, value], index) => ({ name, value, color: COLORS[index % COLORS.length] }))
+      .sort((a, b) => b.value - a.value)
   }
 
   // Get top 5 products by sales
@@ -478,6 +542,123 @@ export default function Analytics() {
               <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Sales Trend Chart */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <TrendingUp className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Tren Penjualan</h2>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={getSalesTrendData()}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-zinc-800" />
+              <XAxis dataKey="date" className="text-xs" tick={{ fill: '#64748b' }} />
+              <YAxis className="text-xs" tick={{ fill: '#64748b' }} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#09090b', 
+                  border: '1px solid #27272a',
+                  borderRadius: '8px'
+                }}
+                itemStyle={{ color: '#e4e4e7' }}
+              />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="sales" 
+                stroke="#0f766e" 
+                strokeWidth={2}
+                dot={{ fill: '#0f766e', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Top Products Chart */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Package className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Top 10 Produk Terlaris</h2>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={getProductChartData()} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-zinc-800" />
+              <XAxis type="number" className="text-xs" tick={{ fill: '#64748b' }} />
+              <YAxis dataKey="name" type="category" width={100} className="text-xs" tick={{ fill: '#64748b' }} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#09090b', 
+                  border: '1px solid #27272a',
+                  borderRadius: '8px'
+                }}
+                itemStyle={{ color: '#e4e4e7' }}
+              />
+              <Bar dataKey="sales" fill="#1d4ed8" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Color Distribution Chart */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <ArrowUp className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Distribusi Warna</h2>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={getColorChartData()}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {getColorChartData().map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#09090b', 
+                  border: '1px solid #27272a',
+                  borderRadius: '8px'
+                }}
+                itemStyle={{ color: '#e4e4e7' }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Color Breakdown Bar Chart */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <BarChart3 className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Penjualan per Warna</h2>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={getColorChartData()}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-zinc-800" />
+              <XAxis dataKey="name" className="text-xs" tick={{ fill: '#64748b' }} />
+              <YAxis className="text-xs" tick={{ fill: '#64748b' }} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#09090b', 
+                  border: '1px solid #27272a',
+                  borderRadius: '8px'
+                }}
+                itemStyle={{ color: '#e4e4e7' }}
+              />
+              <Bar dataKey="value" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

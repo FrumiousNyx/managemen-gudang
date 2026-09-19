@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { useToast } from '@/components/toast-provider'
-import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search, Download } from 'lucide-react'
+import { ProductSearch } from '@/components/product-search'
+import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Download } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import * as XLSX from 'xlsx'
 
@@ -542,26 +543,14 @@ export default function Products() {
         </div>
       )}
 
-      {/* Search Bar */}
+      {/* Search Bar with Autocomplete */}
       <div className="mb-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Cari berdasarkan SKU, Nama, Warna, atau Ukuran..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          )}
-        </div>
+        <ProductSearch
+          onSelect={(product) => {
+            setSearchQuery(product.sku)
+          }}
+          placeholder="Cari berdasarkan SKU atau nama produk..."
+        />
         <p className="text-xs text-slate-500 dark:text-zinc-400 mt-2">
           {searchQuery ? `Ditemukan ${sortedProducts.length} produk` : `Total ${products.length} produk`}
         </p>

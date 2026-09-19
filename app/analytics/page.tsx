@@ -8,6 +8,7 @@ import { CardSkeleton, Skeleton } from '@/components/skeleton'
 import { TrendingUp, Package, Calendar, BarChart3, ArrowUp, Download } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface InventoryLog {
   id: string
@@ -192,9 +193,42 @@ export default function Analytics() {
       .sort((a, b) => b[1] - a[1])
   }
 
+  // Get sales trend data for line chart (last 7 days)
+  const getSalesTrend = () => {
+    const trendMap = new Map<string, number>()
+    const today = new Date()
+    
+    // Initialize last 7 days with 0
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      date.setHours(0, 0, 0, 0)
+      const dateStr = date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })
+      trendMap.set(dateStr, 0)
+    }
+
+    // Fill with actual data
+    filteredLogs.forEach(log => {
+      const logDate = new Date(log.created_at)
+      logDate.setHours(0, 0, 0, 0)
+      const dateStr = logDate.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })
+      const existing = trendMap.get(dateStr) || 0
+      trendMap.set(dateStr, existing + Math.abs(log.qty))
+    })
+
+    return Array.from(trendMap.entries()).map(([date, qty]) => ({
+      date,
+      sales: qty
+    }))
+  }
+
   const topProducts = getTopProducts()
   const colorBreakdown = getColorBreakdown()
   const sizeBreakdown = getSizeBreakdown()
+  const salesTrend = getSalesTrend()
+
+  // Colors for pie chart
+  const COLORS = ['#0f766e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#10b981', '#f97316']
 
   const exportToPDF = () => {
     const doc = new jsPDF()
@@ -357,22 +391,24 @@ export default function Analytics() {
         </div>
 
         {/* Content Skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
             <Skeleton className="h-6 w-48 mb-6" />
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
+            <Skeleton className="h-64 w-full" />
           </div>
           <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
             <Skeleton className="h-6 w-48 mb-6" />
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+            <Skeleton className="h-6 w-48 mb-6" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+            <Skeleton className="h-6 w-48 mb-6" />
+            <Skeleton className="h-64 w-full" />
           </div>
         </div>
       </div>
@@ -481,8 +517,60 @@ export default function Analytics() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top 5 Products */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Sales Trend Chart */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Tren Penjualan 7 Hari</h2>
+            </div>
+            {startDate && endDate && (
+              <span className="text-xs text-slate-500 dark:text-zinc-400">
+                Filter: {startDate} - {endDate}
+              </span>
+            )}
+          </div>
+          {salesTrend.length === 0 ? (
+            <p className="text-slate-500 dark:text-zinc-400 text-center py-8">Belum ada data</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={salesTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#64748b"
+                  fontSize={12}
+                  tick={{ fill: '#64748b' }}
+                />
+                <YAxis 
+                  stroke="#64748b"
+                  fontSize={12}
+                  tick={{ fill: '#64748b' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1e293b', 
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    color: '#f1f5f9'
+                  }}
+                  itemStyle={{ color: '#f1f5f9' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="sales" 
+                  stroke="#0f766e" 
+                  strokeWidth={2}
+                  dot={{ fill: '#0f766e', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Top Products Bar Chart */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -498,36 +586,42 @@ export default function Analytics() {
           {topProducts.length === 0 ? (
             <p className="text-slate-500 dark:text-zinc-400 text-center py-8">Belum ada data penjualan</p>
           ) : (
-            <div className="space-y-4">
-              {topProducts.map((product, index) => (
-                <div key={`${product.product_sku}-${index}`} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-950 rounded-xl">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                        index === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400' :
-                        index === 1 ? 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300' :
-                        index === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400' :
-                        'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400'
-                      }`}>
-                        {index + 1}
-                      </span>
-                      <p className="font-medium text-slate-900 dark:text-zinc-100">{product.product_name}</p>
-                    </div>
-                    <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
-                      {product.product_sku} • {product.color} • {product.size}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-slate-900 dark:text-zinc-100">{product.total_qty}</p>
-                    <p className="text-sm text-slate-500 dark:text-zinc-400">unit</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={topProducts}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
+                <XAxis 
+                  dataKey="product_name" 
+                  stroke="#64748b"
+                  fontSize={11}
+                  tick={{ fill: '#64748b' }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis 
+                  stroke="#64748b"
+                  fontSize={12}
+                  tick={{ fill: '#64748b' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1e293b', 
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    color: '#f1f5f9'
+                  }}
+                  itemStyle={{ color: '#f1f5f9' }}
+                  formatter={(value: number) => [`${value} unit`, 'Penjualan']}
+                />
+                <Bar dataKey="total_qty" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </div>
+      </div>
 
-        {/* Color Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Color Breakdown Pie Chart */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -543,31 +637,39 @@ export default function Analytics() {
           {colorBreakdown.length === 0 ? (
             <p className="text-slate-500 dark:text-zinc-400 text-center py-8">Belum ada data</p>
           ) : (
-            <div className="space-y-4">
-              {colorBreakdown.map(([color, qty], index) => {
-                const totalSales = filteredLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
-                const percentage = totalSales > 0 ? (qty / totalSales) * 100 : 0
-                return (
-                  <div key={color} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-slate-900 dark:text-zinc-100">{color}</span>
-                      <span className="text-sm text-slate-500 dark:text-zinc-400">{qty} unit</span>
-                    </div>
-                    <div className="h-2 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full transition-all"
-                        style={{ width: `${Math.min(percentage, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={colorBreakdown.map(([color, qty]) => ({ name: color, value: qty }))}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {colorBreakdown.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1e293b', 
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    color: '#f1f5f9'
+                  }}
+                  itemStyle={{ color: '#f1f5f9' }}
+                  formatter={(value: number) => [`${value} unit`, 'Penjualan']}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           )}
         </div>
 
-        {/* Size Breakdown */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 lg:col-span-2">
+        {/* Size Breakdown Bar Chart */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
@@ -582,14 +684,33 @@ export default function Analytics() {
           {sizeBreakdown.length === 0 ? (
             <p className="text-slate-500 dark:text-zinc-400 text-center py-8">Belum ada data</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {sizeBreakdown.map(([size, qty]) => (
-                <div key={size} className="bg-slate-50 dark:bg-zinc-950 rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-slate-900 dark:text-zinc-100">{qty}</p>
-                  <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">{size}</p>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={sizeBreakdown.map(([size, qty]) => ({ size, qty }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
+                <XAxis 
+                  dataKey="size" 
+                  stroke="#64748b"
+                  fontSize={12}
+                  tick={{ fill: '#64748b' }}
+                />
+                <YAxis 
+                  stroke="#64748b"
+                  fontSize={12}
+                  tick={{ fill: '#64748b' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1e293b', 
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    color: '#f1f5f9'
+                  }}
+                  itemStyle={{ color: '#f1f5f9' }}
+                  formatter={(value: number) => [`${value} unit`, 'Penjualan']}
+                />
+                <Bar dataKey="qty" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </div>
       </div>

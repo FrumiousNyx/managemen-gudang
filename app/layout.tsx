@@ -32,12 +32,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-slate-50 dark:bg-zinc-950 font-sans">
         <ThemeProvider>
-          <AuthProvider>
-            <ToastProvider>
+          <ToastProvider>
+            <AuthProvider>
               <Navigation />
               <main className="flex-1">{children}</main>
-            </ToastProvider>
-          </AuthProvider>
+            </AuthProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -6,12 +6,25 @@ import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { CardSkeleton, TableSkeleton, ProductCardSkeleton, Skeleton } from '@/components/skeleton'
 import { useToast } from '@/components/toast-provider'
-import { Search, Package, AlertTriangle, CheckCircle, Download, Bell } from 'lucide-react'
+import { Search, Package, AlertTriangle, CheckCircle, Download, Bell, Users, Scissors } from 'lucide-react'
 import * as XLSX from 'xlsx'
+
+interface ProductionSummary {
+  id: string
+  vendor_id: string
+  sku: string
+  rol_count: number
+  output_qty: number
+  production_date: string
+  vendor: {
+    name: string
+  } | null
+}
 
 export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+  const [productionSummaries, setProductionSummaries] = useState<ProductionSummary[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
@@ -19,6 +32,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchProducts()
+    fetchProductionSummaries()
     
     // Request notification permission
     if ('Notification' in window) {
@@ -41,6 +55,23 @@ export default function Dashboard() {
     )
     setFilteredProducts(filtered)
   }, [searchTerm, products])
+
+  const fetchProductionSummaries = async () => {
+    if (!supabase) return
+
+    try {
+      const { data, error } = await supabase
+        .from('production_summary')
+        .select('*, vendor:vendors(name)')
+        .order('production_date', { ascending: false })
+        .limit(10)
+
+      if (error) throw error
+      setProductionSummaries(data || [])
+    } catch (error) {
+      console.error('Error fetching production summaries:', error)
+    }
+  }
 
   const fetchProducts = async () => {
     if (!supabase) {
@@ -341,6 +372,59 @@ export default function Dashboard() {
         {filteredProducts.length === 0 && (
           <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-12 text-center text-slate-500 dark:text-zinc-400">
             Tidak ada produk yang cocok dengan pencarian Anda.
+          </div>
+        )}
+      </div>
+
+      {/* Production Summary Table */}
+      <div className="mt-8 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-200 dark:border-zinc-800">
+          <div className="flex items-center gap-2">
+            <Scissors className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Tabel Produksi Terakhir</h2>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">Ringkasan produksi dari vendor jahit</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 dark:divide-zinc-800">
+            <thead className="bg-slate-50 dark:bg-zinc-950">
+              <tr>
+                <th className="px-6 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Vendor</th>
+                <th className="px-6 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">SKU</th>
+                <th className="px-6 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Jumlah Rol</th>
+                <th className="px-6 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Hasil Pcs</th>
+                <th className="px-6 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Tanggal</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-zinc-900 divide-y divide-slate-200 dark:divide-zinc-800">
+              {productionSummaries.map((summary) => (
+                <tr key={summary.id} className="hover:bg-slate-50 dark:hover:bg-zinc-950 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-slate-400" />
+                      <span className="text-sm font-medium text-slate-900 dark:text-zinc-100">{summary.vendor?.name || '-'}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-zinc-100">
+                    {summary.sku}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-zinc-400">
+                    {summary.rol_count} rol
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                    {summary.output_qty} pcs
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-zinc-400">
+                    {new Date(summary.production_date).toLocaleDateString('id-ID')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {productionSummaries.length === 0 && (
+          <div className="p-12 text-center text-slate-500 dark:text-zinc-400">
+            Belum ada data produksi
           </div>
         )}
       </div>

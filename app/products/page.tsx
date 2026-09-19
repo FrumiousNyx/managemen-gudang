@@ -1232,11 +1232,9 @@ export default function Products() {
                     required
                   >
                     <option value="">Pilih alasan...</option>
-                    <option value="Perbaikan">Perbaikan</option>
-                    <option value="Kerusakan">Kerusakan</option>
-                    <option value="Transfer">Transfer</option>
-                    <option value="Selisih">Selisih</option>
                     <option value="Restock">Restock</option>
+                    <option value="Salah input">Salah input</option>
+                    <option value="Perbaikan">Perbaikan</option>
                   </select>
                 </div>
 
@@ -1375,11 +1373,9 @@ export default function Products() {
                     required
                   >
                     <option value="">Pilih alasan...</option>
-                    <option value="Perbaikan">Perbaikan</option>
-                    <option value="Kerusakan">Kerusakan</option>
-                    <option value="Transfer">Transfer</option>
-                    <option value="Selisih">Selisih</option>
                     <option value="Restock">Restock</option>
+                    <option value="Salah input">Salah input</option>
+                    <option value="Perbaikan">Perbaikan</option>
                   </select>
                 </div>
 

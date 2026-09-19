@@ -628,10 +628,6 @@ export default function PackingOutbound() {
           <li>• <strong>Mode Manual:</strong> Gunakan pemindai barcode USB/Bluetooth atau ketik SKU manual</li>
           <li>• <strong>Mode Satu Pindai:</strong> Setiap pindai mengurangi 1 unit dari stok</li>
           <li>• <strong>Mode Banyak Pindai:</strong> Masukkan jumlah, lalu pindai untuk mengurangi banyak unit</li>
-          <li>• Jumlah otomatis reset ke 1 setelah setiap pindai banyak untuk mencegah kesalahan</li>
-          <li>• Validasi stok mencegah overselling dengan pesan error yang jelas</li>
-          <li>• Operasi database atomik mencegah race condition di lingkungan multi-user</li>
-          <li>• Feedback audio mengkonfirmasi pindai berhasil dan memberi peringatan untuk error</li>
           <li>• <strong>Reset Sesi:</strong> Klik tombol "Reset Sesi" untuk membersihkan semua data dan mematikan kamera</li>
         </ul>
       </div>

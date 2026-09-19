@@ -151,7 +151,7 @@ export default function QCInbound() {
           <title>Print Label - ${product.sku}</title>
           <style>
             @page {
-              size: 50mm 30mm;
+              size: 40mm 20mm;
               margin: 0;
             }
             * {
@@ -160,8 +160,8 @@ export default function QCInbound() {
               padding: 0;
             }
             html, body {
-              width: 50mm;
-              height: 30mm;
+              width: 40mm;
+              height: 20mm;
               background: #fff;
               color: #000;
               font-family: Arial, sans-serif;
@@ -366,7 +366,7 @@ export default function QCInbound() {
           <li>• Cari dan pilih produk SKU dari dropdown</li>
           <li>• Masukkan jumlah barang yang masuk</li>
           <li>• Klik "Tambah Stok Gudang" untuk menambah stok ke gudang</li>
-          <li>• Klik "Cetak Label" untuk mencetak label thermal 50x30mm</li>
+          <li>• Klik "Cetak Label" untuk mencetak label thermal 33x19mm atau 40x20mm</li>
           <li>• Transaksi akan dicatat dalam riwayat inventaris</li>
         </ul>
       </div>

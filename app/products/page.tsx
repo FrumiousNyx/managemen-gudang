@@ -551,7 +551,7 @@ export default function Products() {
           <title>Print Label - ${product.sku}</title>
           <style>
             @page {
-              size: 50mm 30mm;
+              size: 40mm 20mm;
               margin: 0;
             }
             * {
@@ -560,8 +560,8 @@ export default function Products() {
               padding: 0;
             }
             html, body {
-              width: 50mm;
-              height: 30mm;
+              width: 40mm;
+              height: 20mm;
               background: #fff;
               color: #000;
               font-family: Arial, sans-serif;

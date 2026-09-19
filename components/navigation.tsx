@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Package, Scan, ShoppingCart, BarChart3, Menu, X, Clock, TrendingUp, LogOut, Layers, Warehouse, ChevronDown, ChevronRight, Scissors } from "lucide-react"
+import { Package, Scan, ShoppingCart, BarChart3, Menu, X, Clock, LogOut, Layers, Warehouse, ChevronDown, ChevronRight, Scissors, GitBranch, PieChart, TrendingUp } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 
 export function Navigation() {
@@ -29,8 +29,9 @@ export function Navigation() {
         { href: "/production/bapak-didin", label: "Bapak Didin" },
       ]
     },
+    { href: "/traceability", label: "Traceability", icon: GitBranch },
     { href: "/history", label: "Riwayat", icon: Clock },
-    { href: "/analytics", label: "Analitik", icon: TrendingUp },
+    { href: "/analytics", label: "Analitik", icon: PieChart },
     { href: "/products", label: "Produk", icon: Package },
   ]
 

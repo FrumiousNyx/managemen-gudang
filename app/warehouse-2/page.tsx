@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/toast-provider'
 import { CardSkeleton, Skeleton } from '@/components/skeleton'
-import { Warehouse, Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Package, ArrowRight, ArrowLeft, AlertTriangle } from 'lucide-react'
+import { Warehouse, Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Package, ArrowRight, ArrowLeft, AlertTriangle, Scan, X } from 'lucide-react'
+import { Html5QrcodeScanner } from 'html5-qrcode'
 
 interface Product {
   id: string
@@ -49,10 +50,20 @@ export default function Warehouse2() {
   const [transferDirection, setTransferDirection] = useState<'to-warehouse-2' | 'to-main'>('to-warehouse-2')
   const [transferQuantity, setTransferQuantity] = useState('')
   const [transferNotes, setTransferNotes] = useState('')
+  const [showScanner, setShowScanner] = useState(false)
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const { showToast } = useToast()
 
   useEffect(() => {
     fetchData()
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.clear()
+      }
+    }
   }, [])
 
   const fetchData = async () => {
@@ -210,6 +221,41 @@ export default function Warehouse2() {
     }
   }
 
+  const handleScanSuccess = (decodedText: string) => {
+    // Find product by SKU
+    const product = stocks.find(s => s.product.sku === decodedText)
+    if (product) {
+      setSelectedProduct(product.product)
+      setShowScanner(false)
+      showToast('success', `Produk ditemukan: ${product.product.name}`)
+    } else {
+      showToast('error', 'Produk tidak ditemukan')
+    }
+  }
+
+  const startScanner = () => {
+    setShowScanner(true)
+    setTimeout(() => {
+      const scanner = new Html5QrcodeScanner(
+        'scanner',
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        false
+      )
+      scanner.render(handleScanSuccess, (error) => {
+        console.error('Scanner error:', error)
+      })
+      scannerRef.current = scanner
+    }, 100)
+  }
+
+  const stopScanner = () => {
+    if (scannerRef.current) {
+      scannerRef.current.clear()
+      scannerRef.current = null
+    }
+    setShowScanner(false)
+  }
+
   const filteredStocks = stocks.filter(stock => {
     const product = stock.product
     if (!product) return false
@@ -335,6 +381,13 @@ export default function Warehouse2() {
             />
           </div>
           <button
+            onClick={startScanner}
+            className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors whitespace-nowrap"
+          >
+            <Scan className="h-4 w-4 mr-2" />
+            Scan Barcode
+          </button>
+          <button
             onClick={() => setShowTransferModal(true)}
             className="flex items-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors whitespace-nowrap"
           >
@@ -343,6 +396,27 @@ export default function Warehouse2() {
           </button>
         </div>
       </div>
+
+      {/* Scanner Modal */}
+      {showScanner && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Scan Barcode</h2>
+              <button
+                onClick={stopScanner}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div id="scanner" className="mb-4"></div>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 text-center">
+              Arahkan kamera ke barcode produk
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Data Sheet */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">

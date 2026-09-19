@@ -64,12 +64,35 @@ export default function Products() {
     return keywords.every((keyword) => searchTarget.includes(keyword))
   })
 
+  // Custom size order for sorting
+  const sizeOrder: { [key: string]: number } = {
+    'XS': 0,
+    'S': 1,
+    'M': 2,
+    'L': 3,
+    'XL': 4,
+    '2XL': 5,
+    '3XL': 6,
+    '4XL': 7,
+    '5XL': 8
+  }
+
+  const getSizeOrder = (size: string): number => {
+    return sizeOrder[size] ?? 999 // Unknown sizes go last
+  }
+
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
       case 'name':
-        return sortOrder === 'asc' 
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name)
+        // Sort by name, then color, then size (with custom order)
+        const nameCompare = a.name.localeCompare(b.name)
+        if (nameCompare !== 0) return sortOrder === 'asc' ? nameCompare : -nameCompare
+        
+        const colorCompare = a.color.localeCompare(b.color)
+        if (colorCompare !== 0) return sortOrder === 'asc' ? colorCompare : -colorCompare
+        
+        const sizeCompare = getSizeOrder(a.size) - getSizeOrder(b.size)
+        return sortOrder === 'asc' ? sizeCompare : -sizeCompare
       case 'stock':
         return sortOrder === 'asc' 
           ? a.stock - b.stock

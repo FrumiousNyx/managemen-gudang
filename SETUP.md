@@ -1,6 +1,6 @@
 # Sistem Manajemen Inventaris - Instruksi Setup
 
-Aplikasi web manajemen inventaris yang siap produksi, ramah mobile untuk merek pakaian menggunakan Next.js 14+, Tailwind CSS, TypeScript, Lucide Icons, dan Supabase.
+Aplikasi web manajemen inventaris yang siap produksi, ramah mobile untuk merek pakaian menggunakan Next.js 16.3.3, Tailwind CSS 4, TypeScript, Lucide Icons, dan Supabase.
 
 ## Prasyarat
 
@@ -11,7 +11,7 @@ Aplikasi web manajemen inventaris yang siap produksi, ramah mobile untuk merek p
 
 ## Langkah 1: Setup Proyek
 
-Proyek sudah dibuat dengan Next.js 14+ dan semua dependensi yang diperlukan sudah terinstall.
+Proyek sudah dibuat dengan Next.js 16.3.3 dan semua dependensi yang diperlukan sudah terinstall.
 
 Navigasi ke direktori proyek:
 ```bash
@@ -40,11 +40,12 @@ cd inventory-app
 5. Klik "Run" untuk menjalankan skema
 
 Ini akan membuat:
-- Tabel `products` dengan data sampel
+- Tabel `products` dengan field `stock_threshold` (DEFAULT 40, CHECK > 0)
 - Tabel `inventory_logs` untuk riwayat transaksi
 - Index yang diperlukan untuk performa
 - Fungsi helper untuk update stok (`update_stock_with_log`)
 - Fungsi RPC aman untuk pengurangan stok (`deduct_product_stock`) untuk mencegah konflik
+- Migration statement untuk menambahkan stock_threshold ke tabel yang sudah ada
 
 ### 2.3 Dapatkan Kredensial Supabase
 
@@ -81,14 +82,19 @@ Aplikasi akan tersedia di [http://localhost:3000](http://localhost:3000)
 
 ### Dasbor Stok (Halaman Utama)
 - Metrik inventaris real-time
+- **Smart filters**: Semua, Stok Menipis, Stok Habis
 - Fungsi pencarian berdasarkan Nama/SKU/Warna/Ukuran
-- Indikator status stok (Aman/Menipis/Habis)
+- Indikator status stok (Aman/Menipis/Habis) berdasarkan threshold per produk
+- **Export Excel** untuk data stok
+- Notifikasi browser untuk stok rendah
 - Tabel data responsif
 
-### Input Barang Masuk
+### Input Barang Masuk (QC Inbound)
 - Cari dan pilih SKU produk
+- **Batch mode**: Tambah multiple produk sekaligus sebelum diproses
 - Masukkan jumlah barang yang masuk
 - Penambahan stok otomatis dan pencatatan
+- Cetak label thermal 40x20mm (horizontal layout, QR di kiri teks di kanan)
 - Notifikasi toast untuk sukses/error
 
 ### Pindai Keluar (Pengemasan)
@@ -103,13 +109,79 @@ Aplikasi akan tersedia di [http://localhost:3000](http://localhost:3000)
 - Tampilan item yang baru dipindai dengan informasi jumlah
 - Penanganan error untuk SKU yang hilang atau stok tidak cukup
 
-### Manajemen Master SKU
+### Manajemen Master SKU (Produk)
 - Tambah SKU produk baru dengan form modal
 - Lihat semua produk dalam tabel
+- **Stock threshold per produk**: Edit threshold minimum stok
+- **Bulk operations**: Hapus multiple produk sekaligus
+- **Bulk stock update**: Update stok multiple produk sekaligus
+- **Mandatory adjustment reasons**: Wajib pilih alasan (Restock, Salah input, Perbaikan)
+- **Import Excel**: Batch import produk dari file Excel dengan template
+- **Export Excel**: Export daftar produk ke Excel
+- **Smart filters**: Semua, Stok Menipis, Stok Habis
+- Custom sorting by name, color, and size
+- Cetak label thermal per produk
 - Hapus produk (dengan konfirmasi)
-- Indikator status stok
+- Indikator status stok (berdasarkan threshold)
 
 ## Fitur Lanjutan
+
+### Stock Threshold Configuration
+- Set threshold minimum stok per produk di modal adjustment stok
+- Status stok otomatis berdasarkan threshold (Aman/Menipis/Habis)
+- Fallback ke logic nama-based untuk data legacy
+- Import/Export Excel mendukung kolom threshold
+
+### Mandatory Adjustment Reasons
+- Alasan penyesuaian stok wajib untuk audit trail
+- Kategori: Restock, Salah input, Perbaikan
+- Diterapkan ke individual dan bulk stock adjustment
+- Alasan dicatat di inventory_logs notes
+
+### Smart Search & Filters
+- **Dashboard**: Quick filters (Semua, Stok Menipis, Stok Habis)
+- **Products**: Status filters + search by SKU/nama/warna/ukuran
+- Filters bekerja bersama dengan sorting dan export
+
+### Batch QC Inbound
+- Toggle batch mode untuk tambah multiple produk sekaligus
+- List batch items dengan quantity dan remove option
+- Process semua items sekaligus dengan "Proses Semua Batch"
+- Success/failure reporting untuk batch operations
+
+### Bulk Operations
+- **Bulk Delete**: Hapus multiple produk sekaligus
+- **Bulk Stock Update**: Update stok multiple produk sekaligus
+- Validasi dan mandatory reason untuk semua bulk operations
+
+### Excel Integration
+- **Export Excel**: Export data dari Dashboard dan Products
+- **Import Excel**: Batch import produk dengan template
+- Support kolom: SKU, Nama, Warna, Ukuran, Stok, Threshold
+- Template Excel tersedia untuk download
+
+### Notifications
+- Browser notifications untuk stok rendah
+- Permission management dengan tombol aktifasi
+- Summary notification untuk semua produk stok rendah
+
+### Visual Analytics
+- Line chart: Tren penjualan 7 hari terakhir
+- Bar chart: Top 5 produk terlaris
+- Pie chart: Breakdown warna dengan persentase
+- Bar chart: Breakdown ukuran
+- Responsive dan support dark mode
+
+### Dark/Light Theme
+- Toggle theme di navigation bar
+- Theme persistence di localStorage
+- Smooth transitions antara theme
+- Support semua halaman
+
+### Modern Typography
+- Plus Jakarta Sans font untuk tampilan modern
+- Consistent di seluruh aplikasi
+- Good readability di semua device
 
 ### Pindai Keluar Multi-Mode
 Sistem pengemasan sekarang mendukung dua mode pemindaian untuk fleksibilitas operasional:

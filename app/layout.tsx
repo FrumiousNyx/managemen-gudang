@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${plusJakartaSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 dark:bg-zinc-950 font-sans">
+      <body className="min-h-full flex flex-col bg-slate-50 dark:bg-zinc-800 font-sans">
         <ThemeProvider>
           <ToastProvider>
             <AuthProvider>

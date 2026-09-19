@@ -241,7 +241,7 @@ export default function QCInbound() {
         <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Tambah produk yang lulus quality control ke stok gudang</p>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4 sm:p-8">
+      <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Product Selection */}
           <div>
@@ -255,12 +255,12 @@ export default function QCInbound() {
                 placeholder="Cari berdasarkan Nama, SKU, Warna, atau Ukuran..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 sm:py-4 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-sm sm:text-base"
+                className="w-full pl-12 pr-4 py-3 sm:py-4 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-sm sm:text-base"
               />
             </div>
             
             {searchTerm && filteredProducts.length > 0 && (
-              <div className="mt-3 border border-slate-200 dark:border-zinc-800 rounded-xl max-h-64 overflow-y-auto bg-white dark:bg-zinc-900 shadow-sm">
+              <div className="mt-3 border border-slate-200 dark:border-zinc-800 rounded-xl max-h-64 overflow-y-auto bg-white dark:bg-zinc-800 shadow-sm">
                 {filteredProducts.map((product) => (
                   <button
                     key={product.id}
@@ -269,7 +269,7 @@ export default function QCInbound() {
                       setSelectedProduct(product)
                       setSearchTerm(`${product.name} - ${product.sku}`)
                     }}
-                    className="w-full text-left px-4 py-4 hover:bg-slate-50 dark:hover:bg-zinc-950 border-b border-slate-200 dark:border-zinc-800 last:border-b-0 transition-colors"
+                    className="w-full text-left px-4 py-4 hover:bg-slate-50 dark:hover:bg-zinc-800 border-b border-slate-200 dark:border-zinc-800 last:border-b-0 transition-colors"
                   >
                     <div className="font-medium text-slate-900 dark:text-zinc-100">{product.name}</div>
                     <div className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
@@ -283,7 +283,7 @@ export default function QCInbound() {
 
           {/* Selected Product Display */}
           {selectedProduct && (
-            <div className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
+            <div className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-slate-900 dark:text-zinc-100">Produk Terpilih</h3>
                 <button
@@ -333,7 +333,7 @@ export default function QCInbound() {
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="Masukkan jumlah..."
-              className="w-full px-4 py-4 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg"
+              className="w-full px-4 py-4 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg"
               disabled={!selectedProduct}
             />
           </div>
@@ -342,7 +342,7 @@ export default function QCInbound() {
           <button
             type="submit"
             disabled={!selectedProduct || !quantity || loading}
-            className="w-full flex items-center justify-center px-4 py-4 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
+            className="w-full flex items-center justify-center px-4 py-4 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
           >
             {loading ? (
               <>
@@ -360,7 +360,7 @@ export default function QCInbound() {
       </div>
 
       {/* Instructions */}
-      <div className="mt-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
+      <div className="mt-6 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
           <li>• Cari dan pilih produk SKU dari dropdown</li>
@@ -384,7 +384,7 @@ export default function QCInbound() {
       {/* Label Printing Modal */}
       {isLabelModalOpen && selectedProductForLabel && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-zinc-800">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-zinc-800">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Cetak Label Thermal</h2>
               <button
@@ -435,7 +435,7 @@ export default function QCInbound() {
                 </button>
                 <button
                   onClick={() => handlePrintLabel(selectedProductForLabel)}
-                  className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                  className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
                   Cetak
                 </button>

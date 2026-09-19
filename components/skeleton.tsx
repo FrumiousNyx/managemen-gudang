@@ -24,7 +24,7 @@ export function CardSkeleton() {
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-      <div className="bg-slate-50 dark:bg-zinc-950 px-4 py-3.5">
+      <div className="bg-slate-50 dark:bg-zinc-800 px-4 py-3.5">
         <Skeleton className="h-4 w-32" />
       </div>
       <div className="divide-y divide-slate-200 dark:divide-zinc-800">

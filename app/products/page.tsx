@@ -654,7 +654,7 @@ export default function Products() {
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all flex-1 sm:flex-none"
+            className="flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all flex-1 sm:flex-none"
           >
             <Plus className="h-5 w-5 mr-2" />
             Tambah SKU Baru
@@ -705,7 +705,7 @@ export default function Products() {
       )}
 
       {/* Search Bar */}
-      <div className="mb-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
+      <div className="mb-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
           <input
@@ -713,7 +713,7 @@ export default function Products() {
             placeholder="Cari berdasarkan SKU, Nama, Warna, atau Ukuran..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+            className="w-full pl-12 pr-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
           />
           {searchQuery && (
             <button
@@ -730,14 +730,14 @@ export default function Products() {
       </div>
 
       {/* Sort Controls - Mobile */}
-      <div className="md:hidden mb-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
+      <div className="md:hidden mb-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
         <div className="flex gap-2">
           <button
             onClick={() => handleSort('name')}
             className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               sortBy === 'name' 
-                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900' 
-                : 'bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-300'
+                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800' 
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
             }`}
           >
             Nama
@@ -746,8 +746,8 @@ export default function Products() {
             onClick={() => handleSort('stock')}
             className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               sortBy === 'stock' 
-                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900' 
-                : 'bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-300'
+                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800' 
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
             }`}
           >
             Stok
@@ -756,8 +756,8 @@ export default function Products() {
             onClick={() => handleSort('status')}
             className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               sortBy === 'status' 
-                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900' 
-                : 'bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-300'
+                ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800' 
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
             }`}
           >
             Status
@@ -766,10 +766,10 @@ export default function Products() {
       </div>
 
       {/* Products Table - Desktop */}
-      <div className="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+      <div className="hidden md:block bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 dark:divide-zinc-800">
-            <thead className="bg-slate-50 dark:bg-zinc-950">
+            <thead className="bg-slate-50 dark:bg-zinc-800">
               <tr>
                 <th className="px-4 py-3.5 text-left text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wider w-10">
                   <input
@@ -820,11 +820,11 @@ export default function Products() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-zinc-900 divide-y divide-slate-200 dark:divide-zinc-800">
+            <tbody className="bg-white dark:bg-zinc-800 divide-y divide-slate-200 dark:divide-zinc-800">
               {sortedProducts.map((product) => {
                 const status = getStockStatus(product)
                 return (
-                  <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-zinc-950 transition-colors">
+                  <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       <input
                         type="checkbox"
@@ -905,7 +905,7 @@ export default function Products() {
         {sortedProducts.map((product) => {
           const status = getStockStatus(product)
           return (
-            <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
+            <div key={product.id} className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">{product.name}</p>
@@ -963,7 +963,7 @@ export default function Products() {
           )
         })}
         {sortedProducts.length === 0 && (
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-12 text-center text-slate-500 dark:text-zinc-400">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-12 text-center text-slate-500 dark:text-zinc-400">
             Tidak ada produk ditemukan. Tambah SKU pertama Anda untuk memulai.
           </div>
         )}
@@ -972,7 +972,7 @@ export default function Products() {
       {/* Add Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-zinc-800">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-zinc-800">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Tambah SKU Produk Baru</h2>
               <button
@@ -993,7 +993,7 @@ export default function Products() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Rocela"
-                  className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                   required
                 />
               </div>
@@ -1007,7 +1007,7 @@ export default function Products() {
                   value={formData.color}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                   placeholder="contoh: Hitam"
-                  className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                   required
                 />
               </div>
@@ -1021,7 +1021,7 @@ export default function Products() {
                   value={formData.size}
                   onChange={(e) => setFormData({ ...formData, size: e.target.value })}
                   placeholder="contoh: L"
-                  className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                   required
                 />
               </div>
@@ -1035,7 +1035,7 @@ export default function Products() {
                   value={formData.sku}
                   onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                   placeholder="contoh: RCL-BLK-L"
-                  className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                   required
                 />
                 <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
@@ -1054,7 +1054,7 @@ export default function Products() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
+                  className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
                 >
                   {loading ? 'Menambahkan...' : 'Tambah Produk'}
                 </button>
@@ -1065,7 +1065,7 @@ export default function Products() {
       )}
 
       {/* Instructions */}
-      <div className="mt-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
+      <div className="mt-6 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
           <li>• Klik "Tambah SKU Baru" untuk membuat produk baru dengan pengenal barcode</li>
@@ -1092,7 +1092,7 @@ export default function Products() {
       {/* Edit Stock Modal */}
       {isStockModalOpen && selectedProductForStock && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Edit Stok</h2>
               <button
@@ -1104,7 +1104,7 @@ export default function Products() {
             </div>
             
             <div className="p-6">
-              <div className="mb-4 p-4 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-200 dark:border-zinc-800">
+              <div className="mb-4 p-4 bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-800">
                 <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">{selectedProductForStock.name}</p>
                 <p className="text-xs text-slate-500 dark:text-zinc-400">SKU: {selectedProductForStock.sku}</p>
                 <p className="text-xs text-slate-500 dark:text-zinc-400">{selectedProductForStock.color} / {selectedProductForStock.size}</p>
@@ -1120,7 +1120,7 @@ export default function Products() {
                     min="0"
                     value={stockValue}
                     onChange={(e) => setStockValue(e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg font-semibold"
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg font-semibold"
                     required
                     autoFocus
                   />
@@ -1155,7 +1155,7 @@ export default function Products() {
       {/* Label Printing Modal */}
       {isLabelModalOpen && selectedProductForLabel && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-zinc-800">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-zinc-800">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Cetak Label Thermal</h2>
               <button
@@ -1206,7 +1206,7 @@ export default function Products() {
                 </button>
                 <button
                   onClick={() => handlePrintLabel(selectedProductForLabel)}
-                  className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                  className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                 >
                   Cetak
                 </button>
@@ -1219,7 +1219,7 @@ export default function Products() {
       {/* Bulk Stock Update Modal */}
       {isBulkStockModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Update Stok Bulk</h2>
               <button
@@ -1245,7 +1245,7 @@ export default function Products() {
                     value={bulkStockValue}
                     onChange={(e) => setBulkStockValue(e.target.value)}
                     placeholder="Gunakan angka positif untuk tambah, negatif untuk kurangi"
-                    className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                     required
                   />
                   <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
@@ -1264,7 +1264,7 @@ export default function Products() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
+                    className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
                   >
                     {loading ? 'Memproses...' : 'Update Stok'}
                   </button>
@@ -1278,7 +1278,7 @@ export default function Products() {
       {/* Import Excel Modal */}
       {isImportModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-2xl w-full border border-slate-200 dark:border-zinc-800">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl max-w-2xl w-full border border-slate-200 dark:border-zinc-800">
             <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-zinc-800">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-100">Import Produk dari Excel</h2>
               <button
@@ -1315,11 +1315,11 @@ export default function Products() {
                       accept=".xlsx,.xls"
                       onChange={handleImportExcel}
                       disabled={importing}
-                      className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-950 dark:file:text-emerald-400 dark:hover:file:bg-emerald-900 transition-all"
+                      className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-950 dark:file:text-emerald-400 dark:hover:file:bg-emerald-900 transition-all"
                     />
                   </div>
 
-                  <div className="mt-6 bg-slate-50 dark:bg-zinc-950 rounded-xl p-4">
+                  <div className="mt-6 bg-slate-50 dark:bg-zinc-800 rounded-xl p-4">
                     <h4 className="font-semibold text-slate-900 dark:text-zinc-100 mb-2 text-sm">Format Kolom:</h4>
                     <ul className="text-xs text-slate-600 dark:text-zinc-400 space-y-1">
                       <li>• <strong>SKU</strong>: Kode unik untuk produk (wajib)</li>
@@ -1367,7 +1367,7 @@ export default function Products() {
                         setIsImportModalOpen(false)
                         setImportResults({ success: 0, failed: 0, errors: [] })
                       }}
-                      className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
+                      className="flex-1 px-4 py-3 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
                     >
                       Tutup
                     </button>

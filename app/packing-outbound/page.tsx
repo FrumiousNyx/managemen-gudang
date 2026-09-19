@@ -438,7 +438,7 @@ export default function PackingOutbound() {
       </div>
 
       {/* Mode Switcher */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-6">
+      <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Mode Pindai</h2>
           <div className="flex items-center space-x-2">
@@ -446,7 +446,7 @@ export default function PackingOutbound() {
               onClick={() => setScanMode('single')}
               className={`flex items-center px-4 py-2 rounded-xl font-medium transition-all ${
                 scanMode === 'single'
-                  ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
+                  ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800'
                   : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
               }`}
             >
@@ -457,7 +457,7 @@ export default function PackingOutbound() {
               onClick={() => setScanMode('bulk')}
               className={`flex items-center px-4 py-2 rounded-xl font-medium transition-all ${
                 scanMode === 'bulk'
-                  ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
+                  ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800'
                   : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
               }`}
             >
@@ -512,7 +512,7 @@ export default function PackingOutbound() {
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
                     placeholder="Masukkan jumlah"
-                    className="flex-1 px-4 py-3 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg font-semibold text-center"
+                    className="flex-1 px-4 py-3 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg font-semibold text-center"
                   />
                 </div>
               )}
@@ -528,7 +528,7 @@ export default function PackingOutbound() {
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   onKeyDown={handleBarcodeScan}
                   placeholder="Pindai barcode di sini..."
-                  className="w-full pl-12 pr-4 py-4 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg"
+                  className="w-full pl-12 pr-4 py-4 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg"
                   autoFocus
                 />
               </div>
@@ -542,7 +542,7 @@ export default function PackingOutbound() {
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
                     placeholder="Qty"
-                    className="w-full px-4 py-4 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg text-center font-semibold"
+                    className="w-full px-4 py-4 border-2 border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all text-lg text-center font-semibold"
                   />
                 </div>
               )}
@@ -581,7 +581,7 @@ export default function PackingOutbound() {
       </div>
 
       {/* Recently Scanned Items */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+      <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100 mb-4 flex items-center">
           <Package className="h-5 w-5 mr-2" />
           Item yang Baru Dipindai
@@ -597,7 +597,7 @@ export default function PackingOutbound() {
             {recentlyScanned.map((item, index) => (
               <div
                 key={`${item.product.id}-${index}`}
-                className="flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-200 dark:border-zinc-800"
+                className="flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-800"
               >
                 <div className="flex-1">
                   <div className="font-medium text-slate-900 dark:text-zinc-100">
@@ -621,7 +621,7 @@ export default function PackingOutbound() {
       </div>
 
       {/* Instructions */}
-      <div className="mt-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
+      <div className="mt-6 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
           <li>• <strong>Mode Kamera:</strong> Klik "Aktifkan Kamera" untuk pemindaian QR Code otomatis dengan kamera HP</li>
@@ -639,7 +639,7 @@ export default function PackingOutbound() {
       {/* Success Modal */}
       {showSuccessModal && lastScannedProduct && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
             <div className="p-8 text-center">
               <div className="h-20 w-20 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto mb-6">
                 <CheckCircle className="h-12 w-12 text-emerald-600 dark:text-emerald-400" />
@@ -651,7 +651,7 @@ export default function PackingOutbound() {
                   : `${lastScannedQty}x ${lastScannedProduct.name} - ${lastScannedProduct.color} (${lastScannedProduct.size})`
                 }
               </p>
-              <div className="bg-slate-50 dark:bg-zinc-950 rounded-xl p-4 mb-6">
+              <div className="bg-slate-50 dark:bg-zinc-800 rounded-xl p-4 mb-6">
                 <p className="text-sm text-slate-600 dark:text-zinc-400">Sisa Stok</p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-zinc-100">{lastScannedProduct.stock}</p>
               </div>

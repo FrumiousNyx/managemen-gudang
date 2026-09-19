@@ -294,7 +294,7 @@ export default function History() {
       </div>
 
       {/* Filter */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-6">
+      <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -305,7 +305,7 @@ export default function History() {
               <button
                 onClick={exportToPDF}
                 disabled={logs.length === 0}
-                className="flex items-center px-3 py-2 text-sm bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center px-3 py-2 text-sm bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 hover:bg-slate-800 dark:hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Download className="h-4 w-4 mr-1" />
                 Export PDF
@@ -326,7 +326,7 @@ export default function History() {
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-xl font-medium transition-all ${
                 filter === 'all'
-                  ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
+                  ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800'
                   : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
               }`}
             >
@@ -366,7 +366,7 @@ export default function History() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                 />
               </div>
               <div>
@@ -377,7 +377,7 @@ export default function History() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -397,7 +397,7 @@ export default function History() {
       </div>
 
       {/* Logs List */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
+      <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
         {loading ? (
           <div className="p-6">
             <div className="space-y-4">
@@ -437,7 +437,7 @@ export default function History() {
               {Object.entries(groupedLogs).map(([dateKey, dateLogs]) => (
                 <div key={dateKey}>
                   {/* Date Header */}
-                  <div className="bg-slate-50 dark:bg-zinc-950 px-6 py-3 border-b border-slate-200 dark:border-zinc-800">
+                  <div className="bg-slate-50 dark:bg-zinc-800 px-6 py-3 border-b border-slate-200 dark:border-zinc-800">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
                       {formatShortDate(dateLogs[0].created_at)}
                     </h3>
@@ -445,7 +445,7 @@ export default function History() {
                   
                   {/* Logs for this date */}
                   {dateLogs.map((log) => (
-                    <div key={log.id} className="p-6 hover:bg-slate-50 dark:hover:bg-zinc-950 transition-colors">
+                    <div key={log.id} className="p-6 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
@@ -501,7 +501,7 @@ export default function History() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
+                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     <span className="hidden sm:inline">Sebelumnya</span>
@@ -510,7 +510,7 @@ export default function History() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
+                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
                   >
                     <span className="hidden sm:inline">Selanjutnya</span>
                     <span className="sm:hidden">Next</span>
@@ -526,7 +526,7 @@ export default function History() {
       {/* Clear History Confirmation Modal */}
       {showClearConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 max-w-md w-full">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 max-w-md w-full">
             <div className="flex items-center gap-3 mb-4">
               <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
                 <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />

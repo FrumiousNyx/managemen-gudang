@@ -148,6 +148,11 @@ export default function Products() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (!supabase) {
+      showToast('error', 'Koneksi database tidak dikonfigurasi')
+      return
+    }
+
     setImporting(true)
     setImportResults({ success: 0, failed: 0, errors: [] })
 

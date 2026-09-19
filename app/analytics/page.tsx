@@ -611,7 +611,7 @@ export default function Analytics() {
                     color: '#f1f5f9'
                   }}
                   itemStyle={{ color: '#f1f5f9' }}
-                  formatter={(value: number) => [`${value} unit`, 'Penjualan']}
+                  formatter={(value: number) => [`${value || 0} unit`, 'Penjualan']}
                 />
                 <Bar dataKey="total_qty" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -644,7 +644,7 @@ export default function Analytics() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -661,7 +661,7 @@ export default function Analytics() {
                     color: '#f1f5f9'
                   }}
                   itemStyle={{ color: '#f1f5f9' }}
-                  formatter={(value: number) => [`${value} unit`, 'Penjualan']}
+                  formatter={(value: number) => [`${value || 0} unit`, 'Penjualan']}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -706,7 +706,7 @@ export default function Analytics() {
                     color: '#f1f5f9'
                   }}
                   itemStyle={{ color: '#f1f5f9' }}
-                  formatter={(value: number) => [`${value} unit`, 'Penjualan']}
+                  formatter={(value: number) => [`${value || 0} unit`, 'Penjualan']}
                 />
                 <Bar dataKey="qty" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
               </BarChart>

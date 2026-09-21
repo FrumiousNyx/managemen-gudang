@@ -5,10 +5,11 @@ import { supabase } from '@/lib/supabase'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
 import { CardSkeleton, Skeleton } from '@/components/skeleton'
-import { TrendingUp, Package, Calendar, BarChart3, ArrowUp, Download } from 'lucide-react'
+import { TrendingUp, Package, Calendar, BarChart3, ArrowUp, Download, RotateCcw, AlertTriangle } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { getReturnReasonLabel, getDamageTypeLabel } from '@/lib/stock-utils'
 
 interface InventoryLog {
   id: string
@@ -16,6 +17,8 @@ interface InventoryLog {
   type: string
   qty: number
   created_at: string
+  return_reason?: string | null
+  damage_type?: string | null
   product: {
     name: string
     sku: string
@@ -193,6 +196,54 @@ export default function Analytics() {
       .sort((a, b) => b[1] - a[1])
   }
 
+  // Get return metrics
+  const getReturnMetrics = () => {
+    const returnLogs = filteredLogs.filter(log => log.type === 'RETURN')
+    const totalReturns = returnLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
+    const totalSales = filteredLogs.filter(log => log.type === 'OUTBOUND_PACKING').reduce((sum, log) => sum + Math.abs(log.qty), 0)
+    const returnRate = totalSales > 0 ? (totalReturns / totalSales * 100).toFixed(1) : '0'
+    
+    // Breakdown by return reason
+    const reasonMap = new Map<string, number>()
+    returnLogs.forEach(log => {
+      if (log.return_reason) {
+        const existing = reasonMap.get(log.return_reason) || 0
+        reasonMap.set(log.return_reason, existing + Math.abs(log.qty))
+      }
+    })
+    
+    const reasonBreakdown = Array.from(reasonMap.entries())
+      .map(([reason, qty]) => ({ reason, qty, label: getReturnReasonLabel(reason) }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5)
+    
+    return { totalReturns, returnRate, reasonBreakdown }
+  }
+
+  // Get damage metrics
+  const getDamageMetrics = () => {
+    const damageLogs = filteredLogs.filter(log => log.type === 'DAMAGE')
+    const totalDamages = damageLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
+    const totalInventory = filteredLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
+    const damageRate = totalInventory > 0 ? (totalDamages / totalInventory * 100).toFixed(1) : '0'
+    
+    // Breakdown by damage type
+    const typeMap = new Map<string, number>()
+    damageLogs.forEach(log => {
+      if (log.damage_type) {
+        const existing = typeMap.get(log.damage_type) || 0
+        typeMap.set(log.damage_type, existing + Math.abs(log.qty))
+      }
+    })
+    
+    const typeBreakdown = Array.from(typeMap.entries())
+      .map(([type, qty]) => ({ type, qty, label: getDamageTypeLabel(type) }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5)
+    
+    return { totalDamages, damageRate, typeBreakdown }
+  }
+
   // Get sales trend data for line chart (last 7 days)
   const getSalesTrend = () => {
     const trendMap = new Map<string, number>()
@@ -226,9 +277,11 @@ export default function Analytics() {
   const colorBreakdown = getColorBreakdown()
   const sizeBreakdown = getSizeBreakdown()
   const salesTrend = getSalesTrend()
+  const returnMetrics = getReturnMetrics()
+  const damageMetrics = getDamageMetrics()
 
   // Colors for pie chart
-  const COLORS = ['#0f766e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#10b981', '#f97316']
+  const COLORS = ['#0f766e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#10b981', '#f97316', '#14b8a6', '#8b5cf6']
 
   const exportToPDF = () => {
     const doc = new jsPDF()
@@ -348,6 +401,116 @@ export default function Analytics() {
       }
     })
     
+    // Return Metrics
+    if (returnMetrics.totalReturns > 0) {
+      startY = (doc as any).lastAutoTable.finalY + 15
+      doc.setFontSize(12)
+      doc.text('Metrik Retur', 14, startY)
+      
+      const returnData = [
+        ['Total Retur', returnMetrics.totalReturns.toString()],
+        ['Rate Retur', `${returnMetrics.returnRate}%`]
+      ]
+      
+      autoTable(doc, {
+        startY: startY + 6,
+        head: [['Metrik', 'Nilai']],
+        body: returnData,
+        styles: {
+          fontSize: 9,
+          cellPadding: 3
+        },
+        headStyles: {
+          fillColor: [59, 130, 246],
+          textColor: 255,
+          fontStyle: 'bold'
+        }
+      })
+      
+      // Return Reason Breakdown
+      if (returnMetrics.reasonBreakdown.length > 0) {
+        startY = (doc as any).lastAutoTable.finalY + 15
+        doc.setFontSize(12)
+        doc.text('Breakdown Alasan Retur', 14, startY)
+        
+        const reasonData = returnMetrics.reasonBreakdown.map((item, index) => [
+          `${index + 1}`,
+          item.label,
+          item.qty.toString()
+        ])
+        
+        autoTable(doc, {
+          startY: startY + 6,
+          head: [['Rank', 'Alasan', 'Unit']],
+          body: reasonData,
+          styles: {
+            fontSize: 8,
+            cellPadding: 3
+          },
+          headStyles: {
+            fillColor: [59, 130, 246],
+            textColor: 255,
+            fontStyle: 'bold'
+          }
+        })
+      }
+    }
+    
+    // Damage Metrics
+    if (damageMetrics.totalDamages > 0) {
+      startY = (doc as any).lastAutoTable.finalY + 15
+      doc.setFontSize(12)
+      doc.text('Metrik Kerusakan', 14, startY)
+      
+      const damageData = [
+        ['Total Kerusakan', damageMetrics.totalDamages.toString()],
+        ['Rate Kerusakan', `${damageMetrics.damageRate}%`]
+      ]
+      
+      autoTable(doc, {
+        startY: startY + 6,
+        head: [['Metrik', 'Nilai']],
+        body: damageData,
+        styles: {
+          fontSize: 9,
+          cellPadding: 3
+        },
+        headStyles: {
+          fillColor: [245, 158, 11],
+          textColor: 255,
+          fontStyle: 'bold'
+        }
+      })
+      
+      // Damage Type Breakdown
+      if (damageMetrics.typeBreakdown.length > 0) {
+        startY = (doc as any).lastAutoTable.finalY + 15
+        doc.setFontSize(12)
+        doc.text('Breakdown Jenis Kerusakan', 14, startY)
+        
+        const typeData = damageMetrics.typeBreakdown.map((item, index) => [
+          `${index + 1}`,
+          item.label,
+          item.qty.toString()
+        ])
+        
+        autoTable(doc, {
+          startY: startY + 6,
+          head: [['Rank', 'Jenis', 'Unit']],
+          body: typeData,
+          styles: {
+            fontSize: 8,
+            cellPadding: 3
+          },
+          headStyles: {
+            fillColor: [245, 158, 11],
+            textColor: 255,
+            fontStyle: 'bold'
+          }
+        })
+      }
+    }
+    
     // Footer
     const pageCount = doc.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
@@ -385,6 +548,14 @@ export default function Analytics() {
 
         {/* Sales Summary Cards Skeleton */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+
+        {/* Return & Damage Summary Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <CardSkeleton />
           <CardSkeleton />
           <CardSkeleton />
           <CardSkeleton />
@@ -512,6 +683,61 @@ export default function Analytics() {
             </div>
             <div className="h-12 w-12 rounded-xl bg-purple-50 dark:bg-purple-950 flex items-center justify-center">
               <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Return & Damage Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Retur</p>
+              <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{returnMetrics.totalReturns}</p>
+              <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">unit</p>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
+              <RotateCcw className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Rate Retur</p>
+              <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{returnMetrics.returnRate}%</p>
+              <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">dari penjualan</p>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-cyan-50 dark:bg-cyan-950 flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Barang Rusak</p>
+              <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{damageMetrics.totalDamages}</p>
+              <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">unit</p>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-red-50 dark:bg-red-950 flex items-center justify-center">
+              <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Rate Kerusakan</p>
+              <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{damageMetrics.damageRate}%</p>
+              <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">dari total</p>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
+              <BarChart3 className="h-6 w-6 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
         </div>
@@ -713,6 +939,65 @@ export default function Analytics() {
             </ResponsiveContainer>
           )}
         </div>
+      </div>
+
+      {/* Return & Damage Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        {/* Return Reason Breakdown */}
+        {returnMetrics.reasonBreakdown.length > 0 && (
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <RotateCcw className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Breakdown Alasan Retur</h2>
+              </div>
+              {startDate && endDate && (
+                <span className="text-xs text-slate-500 dark:text-zinc-400">
+                  Filter: {startDate} - {endDate}
+                </span>
+              )}
+            </div>
+            <div className="space-y-3">
+              {returnMetrics.reasonBreakdown.map((item, index) => (
+                <div key={item.reason} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-slate-600 dark:text-zinc-400">#{index + 1}</span>
+                    <span className="text-sm text-slate-900 dark:text-zinc-100">{item.label}</span>
+                  </div>
+                  <span className="text-sm font-semibold text-slate-900 dark:text-zinc-100">{item.qty} unit</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Damage Type Breakdown */}
+        {damageMetrics.typeBreakdown.length > 0 && (
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Breakdown Jenis Kerusakan</h2>
+              </div>
+              {startDate && endDate && (
+                <span className="text-xs text-slate-500 dark:text-zinc-400">
+                  Filter: {startDate} - {endDate}
+                </span>
+              )}
+            </div>
+            <div className="space-y-3">
+              {damageMetrics.typeBreakdown.map((item, index) => (
+                <div key={item.type} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-slate-600 dark:text-zinc-400">#{index + 1}</span>
+                    <span className="text-sm text-slate-900 dark:text-zinc-100">{item.label}</span>
+                  </div>
+                  <span className="text-sm font-semibold text-slate-900 dark:text-zinc-100">{item.qty} unit</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { supabase, Product } from '@/lib/supabase'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
-import { ShoppingCart, Plus, Search, Printer, X } from 'lucide-react'
+import { ShoppingCart, Plus, Search, Printer, X, Package, AlertTriangle, RotateCcw } from 'lucide-react'
 import QRCode from 'react-qr-code'
+import { getReturnReasonOptions, getDamageTypeOptions, getReturnReasonLabel, getDamageTypeLabel } from '@/lib/stock-utils'
 
 export default function QCInbound() {
   const router = useRouter()
@@ -18,7 +19,10 @@ export default function QCInbound() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
   const [batchMode, setBatchMode] = useState(false)
-  const [batchItems, setBatchItems] = useState<{ product: Product; quantity: number }[]>([])
+  const [batchItems, setBatchItems] = useState<{ product: Product; quantity: number; transactionType: string; returnReason?: string; damageType?: string }[]>([])
+  const [transactionType, setTransactionType] = useState<'INBOUND_QC' | 'RETURN' | 'DAMAGE'>('INBOUND_QC')
+  const [returnReason, setReturnReason] = useState('')
+  const [damageType, setDamageType] = useState('')
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -87,6 +91,16 @@ export default function QCInbound() {
       return
     }
 
+    if (transactionType === 'RETURN' && !returnReason) {
+      showToast('error', 'Silakan pilih alasan retur')
+      return
+    }
+
+    if (transactionType === 'DAMAGE' && !damageType) {
+      showToast('error', 'Silakan pilih jenis kerusakan')
+      return
+    }
+
     if (batchMode) {
       // Add to batch
       const existingIndex = batchItems.findIndex(item => item.product.id === selectedProduct.id)
@@ -94,11 +108,23 @@ export default function QCInbound() {
         // Update existing item
         const updatedBatch = [...batchItems]
         updatedBatch[existingIndex].quantity += qty
+        updatedBatch[existingIndex].transactionType = transactionType
+        if (transactionType === 'RETURN') {
+          updatedBatch[existingIndex].returnReason = returnReason
+        } else if (transactionType === 'DAMAGE') {
+          updatedBatch[existingIndex].damageType = damageType
+        }
         setBatchItems(updatedBatch)
         showToast('success', `Diperbarui: ${selectedProduct.name} (${updatedBatch[existingIndex].quantity} unit)`)
       } else {
         // Add new item
-        setBatchItems([...batchItems, { product: selectedProduct, quantity: qty }])
+        setBatchItems([...batchItems, { 
+          product: selectedProduct, 
+          quantity: qty,
+          transactionType,
+          returnReason: transactionType === 'RETURN' ? returnReason : undefined,
+          damageType: transactionType === 'DAMAGE' ? damageType : undefined
+        }])
         showToast('success', `Ditambahkan: ${selectedProduct.name} (${qty} unit)`)
       }
 
@@ -106,32 +132,68 @@ export default function QCInbound() {
       setSelectedProduct(null)
       setQuantity('')
       setSearchTerm('')
+      setReturnReason('')
+      setDamageType('')
     } else {
       // Single product mode - process immediately
       setLoading(true)
 
       try {
+        let stockChange = qty
+        let logType = transactionType
+        let notes = ''
+        let returnReasonField = undefined
+        let damageTypeField = undefined
+
+        if (transactionType === 'INBOUND_QC') {
+          stockChange = qty
+          logType = 'INBOUND_QC'
+          notes = `Barang masuk QC: ${qty} unit`
+        } else if (transactionType === 'RETURN') {
+          stockChange = qty // Returns add stock back
+          logType = 'RETURN'
+          notes = `Retur barang: ${qty} unit - ${getReturnReasonLabel(returnReason)}`
+          returnReasonField = returnReason
+        } else if (transactionType === 'DAMAGE') {
+          stockChange = -qty // Damages reduce stock
+          logType = 'DAMAGE'
+          notes = `Barang rusak: ${qty} unit - ${getDamageTypeLabel(damageType)}`
+          damageTypeField = damageType
+        }
+
         // Update product stock
         const { error: updateError } = await supabase
           .from('products')
-          .update({ stock: selectedProduct.stock + qty })
+          .update({ stock: selectedProduct.stock + stockChange })
           .eq('id', selectedProduct.id)
 
         if (updateError) throw updateError
 
         // Insert inventory log
+        const logData: any = {
+          product_id: selectedProduct.id,
+          type: logType,
+          qty: stockChange,
+          notes
+        }
+
+        if (returnReasonField) {
+          logData.return_reason = returnReasonField
+        }
+
+        if (damageTypeField) {
+          logData.damage_type = damageTypeField
+        }
+
         const { error: logError } = await supabase
           .from('inventory_logs')
-          .insert({
-            product_id: selectedProduct.id,
-            type: 'INBOUND_QC',
-            qty: qty,
-            notes: `Barang masuk QC: ${qty} unit`
-          })
+          .insert(logData)
 
         if (logError) throw logError
 
-        showToast('success', `Berhasil menambahkan ${qty} unit ke ${selectedProduct.name}`)
+        const actionText = transactionType === 'INBOUND_QC' ? 'menambahkan' : 
+                         transactionType === 'RETURN' ? 'menerima retur' : 'mencatat kerusakan'
+        showToast('success', `Berhasil ${actionText} ${qty} unit untuk ${selectedProduct.name}`)
 
         // Clear cache to force refresh
         cache.delete(CACHE_KEYS.PRODUCTS)
@@ -141,13 +203,18 @@ export default function QCInbound() {
         setSelectedProduct(null)
         setQuantity('')
         setSearchTerm('')
+        if (!batchMode) {
+          setReturnReason('')
+          setDamageType('')
+          setTransactionType('INBOUND_QC')
+        }
 
         // Refresh products and router
         await fetchProducts()
         router.refresh()
       } catch (error) {
-        console.error('Error adding stock:', error)
-        showToast('error', 'Gagal menambah stok')
+        console.error('Error processing transaction:', error)
+        showToast('error', 'Gagal memproses transaksi')
       } finally {
         setLoading(false)
       }
@@ -173,23 +240,53 @@ export default function QCInbound() {
 
       for (const item of batchItems) {
         try {
+          let stockChange = item.quantity
+          let logType = item.transactionType
+          let notes = ''
+          let returnReasonField = item.returnReason
+          let damageTypeField = item.damageType
+
+          if (item.transactionType === 'INBOUND_QC') {
+            stockChange = item.quantity
+            logType = 'INBOUND_QC'
+            notes = `Barang masuk QC (batch): ${item.quantity} unit`
+          } else if (item.transactionType === 'RETURN') {
+            stockChange = item.quantity
+            logType = 'RETURN'
+            notes = `Retur barang (batch): ${item.quantity} unit - ${getReturnReasonLabel(item.returnReason || '')}`
+          } else if (item.transactionType === 'DAMAGE') {
+            stockChange = -item.quantity
+            logType = 'DAMAGE'
+            notes = `Barang rusak (batch): ${item.quantity} unit - ${getDamageTypeLabel(item.damageType || '')}`
+          }
+
           // Update product stock
           const { error: updateError } = await supabase
             .from('products')
-            .update({ stock: item.product.stock + item.quantity })
+            .update({ stock: item.product.stock + stockChange })
             .eq('id', item.product.id)
 
           if (updateError) throw updateError
 
           // Insert inventory log
+          const logData: any = {
+            product_id: item.product.id,
+            type: logType,
+            qty: stockChange,
+            notes
+          }
+
+          if (returnReasonField) {
+            logData.return_reason = returnReasonField
+          }
+
+          if (damageTypeField) {
+            logData.damage_type = damageTypeField
+          }
+
           const { error: logError } = await supabase
             .from('inventory_logs')
-            .insert({
-              product_id: item.product.id,
-              type: 'INBOUND_QC',
-              qty: item.quantity,
-              notes: `Barang masuk QC (batch): ${item.quantity} unit`
-            })
+            .insert(logData)
 
           if (logError) throw logError
 
@@ -211,6 +308,9 @@ export default function QCInbound() {
       setSelectedProduct(null)
       setQuantity('')
       setSearchTerm('')
+      setReturnReason('')
+      setDamageType('')
+      setTransactionType('INBOUND_QC')
       setBatchMode(false)
 
       // Refresh products and router
@@ -230,6 +330,8 @@ export default function QCInbound() {
 
   const clearBatch = () => {
     setBatchItems([])
+    setReturnReason('')
+    setDamageType('')
   }
 
   const handlePrintLabel = (product: Product) => {
@@ -364,6 +466,103 @@ export default function QCInbound() {
       </div>
 
       <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4 sm:p-8">
+        {/* Transaction Type Selection */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-3">
+            Jenis Transaksi
+          </label>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setTransactionType('INBOUND_QC')
+                setReturnReason('')
+                setDamageType('')
+              }}
+              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
+                transactionType === 'INBOUND_QC'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              <Package className="h-5 w-5" />
+              Barang Masuk
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTransactionType('RETURN')
+                setDamageType('')
+              }}
+              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
+                transactionType === 'RETURN'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              <RotateCcw className="h-5 w-5" />
+              Retur
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTransactionType('DAMAGE')
+                setReturnReason('')
+              }}
+              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
+                transactionType === 'DAMAGE'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              <AlertTriangle className="h-5 w-5" />
+              Barang Rusak
+            </button>
+          </div>
+        </div>
+
+        {/* Return Reason Selection */}
+        {transactionType === 'RETURN' && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-3">
+              Alasan Retur
+            </label>
+            <select
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+            >
+              <option value="">Pilih alasan retur...</option>
+              {getReturnReasonOptions().map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Damage Type Selection */}
+        {transactionType === 'DAMAGE' && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-3">
+              Jenis Kerusakan
+            </label>
+            <select
+              value={damageType}
+              onChange={(e) => setDamageType(e.target.value)}
+              className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+            >
+              <option value="">Pilih jenis kerusakan...</option>
+              {getDamageTypeOptions().map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Batch Mode Toggle */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -407,6 +606,17 @@ export default function QCInbound() {
                     <div className="font-medium text-slate-900 dark:text-zinc-100">{item.product.name}</div>
                     <div className="text-xs text-slate-500 dark:text-zinc-400">
                       {item.product.sku} | {item.product.color} / {item.product.size}
+                    </div>
+                    <div className="text-xs mt-1">
+                      {item.transactionType === 'INBOUND_QC' && (
+                        <span className="text-emerald-600 dark:text-emerald-400">Barang Masuk</span>
+                      )}
+                      {item.transactionType === 'RETURN' && (
+                        <span className="text-blue-600 dark:text-blue-400">Retur - {getReturnReasonLabel(item.returnReason || '')}</span>
+                      )}
+                      {item.transactionType === 'DAMAGE' && (
+                        <span className="text-red-600 dark:text-red-400">Rusak - {getDamageTypeLabel(item.damageType || '')}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -532,7 +742,7 @@ export default function QCInbound() {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={!selectedProduct || !quantity || loading}
+            disabled={!selectedProduct || !quantity || loading || (transactionType === 'RETURN' && !returnReason) || (transactionType === 'DAMAGE' && !damageType)}
             className="w-full flex items-center justify-center px-4 py-4 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
           >
             {loading ? (
@@ -543,7 +753,11 @@ export default function QCInbound() {
             ) : (
               <>
                 <Plus className="h-5 w-5 mr-2" />
-                {batchMode ? 'Tambah ke Batch' : 'Tambah Stok Gudang'}
+                {batchMode ? 'Tambah ke Batch' : (
+                  transactionType === 'INBOUND_QC' ? 'Tambah Stok Gudang' :
+                  transactionType === 'RETURN' ? 'Proses Retur' :
+                  'Catat Kerusakan'
+                )}
               </>
             )}
           </button>
@@ -554,11 +768,13 @@ export default function QCInbound() {
       <div className="mt-6 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-xl p-6">
         <h3 className="font-semibold text-slate-900 dark:text-zinc-100 mb-3">Instruksi</h3>
         <ul className="text-sm text-slate-600 dark:text-zinc-400 space-y-2">
+          <li>• Pilih jenis transaksi: Barang Masuk, Retur, atau Barang Rusak</li>
+          <li>• Untuk Retur/Rusak, pilih alasan atau jenis kerusakan</li>
           <li>• Cari dan pilih produk SKU dari dropdown</li>
-          <li>• Masukkan jumlah barang yang masuk</li>
-          <li>• Mode Normal: Klik "Tambah Stok Gudang" untuk langsung menambah stok</li>
+          <li>• Masukkan jumlah barang</li>
+          <li>• Mode Normal: Klik tombol submit untuk langsung memproses</li>
           <li>• Mode Batch: Nyalakan toggle untuk menambahkan multiple produk sekaligus, lalu klik "Proses Semua Batch"</li>
-          <li>• Klik "Cetak Label" untuk mencetak label thermal 33x19mm atau 40x20mm</li>
+          <li>• Klik "Cetak Label" untuk mencetak label thermal 40x20mm</li>
           <li>• Transaksi akan dicatat dalam riwayat inventaris</li>
         </ul>
       </div>

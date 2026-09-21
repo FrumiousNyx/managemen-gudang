@@ -5,9 +5,10 @@ import { supabase } from '@/lib/supabase'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
 import { Skeleton } from '@/components/skeleton'
-import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar, Trash2, AlertTriangle, Download, RefreshCw } from 'lucide-react'
+import { Clock, ArrowDown, ArrowUp, Package, Filter, ChevronLeft, ChevronRight, Calendar, Trash2, AlertTriangle, Download, RefreshCw, RotateCcw } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { getReturnReasonLabel, getDamageTypeLabel } from '@/lib/stock-utils'
 
 interface InventoryLog {
   id: string
@@ -16,6 +17,8 @@ interface InventoryLog {
   qty: number
   notes: string
   created_at: string
+  return_reason?: string | null
+  damage_type?: string | null
   product: {
     name: string
     sku: string
@@ -24,7 +27,7 @@ interface InventoryLog {
   }
 }
 
-type FilterType = 'all' | 'inbound' | 'outbound'
+type FilterType = 'all' | 'inbound' | 'outbound' | 'return' | 'damage'
 
 export default function History() {
   const [logs, setLogs] = useState<InventoryLog[]>([])
@@ -85,6 +88,10 @@ export default function History() {
         query = query.eq('type', 'INBOUND_QC')
       } else if (filter === 'outbound') {
         query = query.eq('type', 'OUTBOUND_PACKING')
+      } else if (filter === 'return') {
+        query = query.eq('type', 'RETURN')
+      } else if (filter === 'damage') {
+        query = query.eq('type', 'DAMAGE')
       }
 
       if (startDate) {
@@ -185,36 +192,33 @@ export default function History() {
   }
 
   const getLogTypeLabel = (type: string) => {
-    switch (type) {
-      case 'INBOUND_QC':
-        return 'Barang Masuk'
-      case 'OUTBOUND_PACKING':
-        return 'Barang Keluar'
-      default:
-        return type
+    const labels: Record<string, string> = {
+      'INBOUND_QC': 'Barang Masuk',
+      'OUTBOUND_PACKING': 'Barang Keluar',
+      'RETURN': 'Retur',
+      'DAMAGE': 'Barang Rusak'
     }
+    return labels[type] || type
   }
 
   const getLogTypeColor = (type: string) => {
-    switch (type) {
-      case 'INBOUND_QC':
-        return 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950'
-      case 'OUTBOUND_PACKING':
-        return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950'
-      default:
-        return 'text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950'
+    const colors: Record<string, string> = {
+      'INBOUND_QC': 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950',
+      'OUTBOUND_PACKING': 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950',
+      'RETURN': 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950',
+      'DAMAGE': 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950'
     }
+    return colors[type] || 'text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950'
   }
 
   const getLogIcon = (type: string) => {
-    switch (type) {
-      case 'INBOUND_QC':
-        return <ArrowDown className="h-4 w-4" />
-      case 'OUTBOUND_PACKING':
-        return <ArrowUp className="h-4 w-4" />
-      default:
-        return <Package className="h-4 w-4" />
+    const icons: Record<string, React.ReactNode> = {
+      'INBOUND_QC': <ArrowDown className="h-4 w-4" />,
+      'OUTBOUND_PACKING': <ArrowUp className="h-4 w-4" />,
+      'RETURN': <RotateCcw className="h-4 w-4" />,
+      'DAMAGE': <AlertTriangle className="h-4 w-4" />
     }
+    return icons[type] || <Package className="h-4 w-4" />
   }
 
   const exportToPDF = () => {
@@ -227,9 +231,14 @@ export default function History() {
     // Filter info
     doc.setFontSize(10)
     doc.setTextColor(100)
-    const filterText = filter === 'all' ? 'Semua Transaksi' : 
-                       filter === 'inbound' ? 'Barang Masuk' : 'Barang Keluar'
-    doc.text(`Filter: ${filterText}`, 14, 30)
+    const filterLabels: Record<FilterType, string> = {
+      'all': 'Semua Transaksi',
+      'inbound': 'Barang Masuk',
+      'outbound': 'Barang Keluar',
+      'return': 'Retur',
+      'damage': 'Barang Rusak'
+    }
+    doc.text(`Filter: ${filterLabels[filter]}`, 14, 30)
     
     if (startDate || endDate) {
       const dateRange = startDate && endDate ? 
@@ -249,12 +258,14 @@ export default function History() {
       log.product?.color || '-',
       log.product?.size || '-',
       log.qty > 0 ? `+${log.qty}` : log.qty,
+      log.type === 'RETURN' ? (log.return_reason ? getReturnReasonLabel(log.return_reason) : '-') : 
+      log.type === 'DAMAGE' ? (log.damage_type ? getDamageTypeLabel(log.damage_type) : '-') : '-',
       log.notes || '-'
     ])
     
     autoTable(doc, {
       startY: 50,
-      head: [['Tanggal', 'Tipe', 'Nama Produk', 'SKU', 'Warna', 'Ukuran', 'Qty', 'Catatan']],
+      head: [['Tanggal', 'Tipe', 'Nama Produk', 'SKU', 'Warna', 'Ukuran', 'Qty', 'Alasan/Tipe', 'Catatan']],
       body: tableData,
       styles: {
         fontSize: 8,
@@ -269,14 +280,15 @@ export default function History() {
         fillColor: [245, 245, 245]
       },
       columnStyles: {
-        0: { cellWidth: 35 },
-        1: { cellWidth: 25 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 20 },
-        4: { cellWidth: 20 },
-        5: { cellWidth: 15 },
-        6: { cellWidth: 15 },
-        7: { cellWidth: 40 }
+        0: { cellWidth: 30 },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 18 },
+        4: { cellWidth: 18 },
+        5: { cellWidth: 12 },
+        6: { cellWidth: 12 },
+        7: { cellWidth: 25 },
+        8: { cellWidth: 30 }
       }
     })
     
@@ -341,7 +353,7 @@ export default function History() {
           </div>
           
           {/* Type Filter */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-xl font-medium transition-all ${
@@ -371,6 +383,26 @@ export default function History() {
               }`}
             >
               Barang Keluar
+            </button>
+            <button
+              onClick={() => setFilter('return')}
+              className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                filter === 'return'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              Retur
+            </button>
+            <button
+              onClick={() => setFilter('damage')}
+              className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                filter === 'damage'
+                  ? 'bg-amber-600 dark:bg-amber-500 text-white'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              Barang Rusak
             </button>
           </div>
 
@@ -493,9 +525,22 @@ export default function History() {
                               <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.size || '-'}</span>
                             </div>
                           </div>
-                          <div className="mt-3 text-sm">
-                            <span className="text-slate-500 dark:text-zinc-400">Catatan:</span>
-                            <span className="ml-2 text-slate-900 dark:text-zinc-100">{log.notes}</span>
+                          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            {(log.type === 'RETURN' || log.type === 'DAMAGE') && (
+                              <div>
+                                <span className="text-slate-500 dark:text-zinc-400">Alasan/Tipe:</span>
+                                <span className="ml-2 text-slate-900 dark:text-zinc-100">
+                                  {log.type === 'RETURN' 
+                                    ? (log.return_reason ? getReturnReasonLabel(log.return_reason) : '-')
+                                    : (log.damage_type ? getDamageTypeLabel(log.damage_type) : '-')
+                                  }
+                                </span>
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-slate-500 dark:text-zinc-400">Catatan:</span>
+                              <span className="ml-2 text-slate-900 dark:text-zinc-100">{log.notes || '-'}</span>
+                            </div>
                           </div>
                         </div>
                         <div className="flex-shrink-0 text-right">

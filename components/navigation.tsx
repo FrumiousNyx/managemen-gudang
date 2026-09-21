@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Package, Scan, ShoppingCart, BarChart3, Menu, X, Clock, TrendingUp, LogOut, Moon, Sun } from "lucide-react"
+import { Package, Scan, ShoppingCart, BarChart3, Menu, X, Clock, TrendingUp, LogOut, Moon, Sun, RotateCcw } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useTheme } from "@/contexts/theme-context"
 
@@ -18,6 +18,7 @@ export function Navigation() {
     { href: "/", label: "Dasbor Stok", icon: BarChart3 },
     { href: "/qc-inbound", label: "Barang Masuk", icon: ShoppingCart },
     { href: "/packing-outbound", label: "Barang Keluar", icon: Scan },
+    { href: "/returns", label: "Retur & Rusak", icon: RotateCcw },
     { href: "/history", label: "Riwayat", icon: Clock },
     { href: "/analytics", label: "Analitik", icon: TrendingUp },
     { href: "/products", label: "Produk", icon: Package },

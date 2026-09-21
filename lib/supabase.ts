@@ -21,9 +21,11 @@ export type Product = {
 export type InventoryLog = {
   id: string
   product_id: string
-  type: 'INBOUND_QC' | 'OUTBOUND_PACKING'
+  type: 'INBOUND_QC' | 'OUTBOUND_PACKING' | 'RETURN' | 'DAMAGE'
   qty: number
   notes: string | null
+  return_reason?: string | null
+  damage_type?: string | null
   created_at: string
   product?: Product
 }

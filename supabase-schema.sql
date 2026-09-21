@@ -16,15 +16,26 @@ CREATE TABLE IF NOT EXISTS products (
 -- Migration: Add stock_threshold column to existing products table
 ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_threshold INTEGER DEFAULT 40 CHECK (stock_threshold > 0);
 
+-- Migration: Add return_reason and damage_type columns for returns/damages tracking
+ALTER TABLE inventory_logs ADD COLUMN IF NOT EXISTS return_reason TEXT;
+ALTER TABLE inventory_logs ADD COLUMN IF NOT EXISTS damage_type TEXT;
+
+-- Migration: Update type CHECK constraint to include RETURN and DAMAGE
+ALTER TABLE inventory_logs DROP CONSTRAINT IF EXISTS inventory_logs_type_check;
+ALTER TABLE inventory_logs ADD CONSTRAINT inventory_logs_type_check 
+    CHECK (type IN ('INBOUND_QC', 'OUTBOUND_PACKING', 'RETURN', 'DAMAGE'));
+
                             -- Create inventory_logs table for audit trail
                             CREATE TABLE IF NOT EXISTS inventory_logs (
                                 id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                                     product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-                                        type TEXT NOT NULL CHECK (type IN ('INBOUND_QC', 'OUTBOUND_PACKING')),
+                                        type TEXT NOT NULL CHECK (type IN ('INBOUND_QC', 'OUTBOUND_PACKING', 'RETURN', 'DAMAGE')),
                                             qty INTEGER NOT NULL CHECK (qty != 0),
                                                 notes TEXT,
-                                                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                                                    );
+                                                    return_reason TEXT,
+                                                        damage_type TEXT,
+                                                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                                                            );
 
                                                     -- Create indexes for better performance
                                                     CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);

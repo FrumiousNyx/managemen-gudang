@@ -6,7 +6,7 @@ import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { CardSkeleton, TableSkeleton, ProductCardSkeleton, Skeleton } from '@/components/skeleton'
 import { useToast } from '@/components/toast-provider'
-import { Search, Package, AlertTriangle, CheckCircle, Download, Bell, ChevronDown } from 'lucide-react'
+import { Search, Package, AlertTriangle, CheckCircle, Download, Bell, ChevronDown, RotateCcw } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 export default function Dashboard() {
@@ -20,6 +20,8 @@ export default function Dashboard() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
   const [displayCount, setDisplayCount] = useState(100)
   const [totalCount, setTotalCount] = useState(0)
+  const [returnCount, setReturnCount] = useState(0)
+  const [damageCount, setDamageCount] = useState(0)
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -191,6 +193,41 @@ export default function Dashboard() {
     }
   }, [loading, products.length, notificationPermission])
 
+  // Fetch return and damage counts
+  useEffect(() => {
+    const fetchReturnDamageCounts = async () => {
+      if (!supabase) return
+
+      try {
+        // Get return count
+        const { data: returnData, error: returnError } = await supabase
+          .from('inventory_logs')
+          .select('qty')
+          .eq('type', 'RETURN')
+        
+        if (!returnError && returnData) {
+          const totalReturns = returnData.reduce((sum, log) => sum + Math.abs(log.qty), 0)
+          setReturnCount(totalReturns)
+        }
+
+        // Get damage count
+        const { data: damageData, error: damageError } = await supabase
+          .from('inventory_logs')
+          .select('qty')
+          .eq('type', 'DAMAGE')
+        
+        if (!damageError && damageData) {
+          const totalDamages = damageData.reduce((sum, log) => sum + Math.abs(log.qty), 0)
+          setDamageCount(totalDamages)
+        }
+      } catch (error) {
+        console.error('Error fetching return/damage counts:', error)
+      }
+    }
+
+    fetchReturnDamageCounts()
+  }, [])
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -202,6 +239,12 @@ export default function Dashboard() {
         {/* Metric Cards Skeleton */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+
+        {/* Return & Damage Metric Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <CardSkeleton />
           <CardSkeleton />
         </div>
@@ -277,6 +320,35 @@ export default function Dashboard() {
             </div>
             <div className="h-12 w-12 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
               <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Return & Damage Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Retur Barang</p>
+              <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{returnCount}</p>
+              <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">unit</p>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
+              <RotateCcw className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Barang Rusak</p>
+              <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{damageCount}</p>
+              <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">unit</p>
+            </div>
+            <div className="h-12 w-12 rounded-xl bg-red-50 dark:bg-red-950 flex items-center justify-center">
+              <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
           </div>
         </div>

@@ -61,13 +61,13 @@ export default function Dashboard() {
       }
 
       // Remove products from notified list if they are no longer low stock
-      const productsToRemoveFromNotified = previouslyNotified.filter(id => {
+      const productsToRemoveFromNotified = previouslyNotified.filter((id: string) => {
         const product = allProducts.find(p => p.id === id)
         return product && !isLowStock(product)
       })
 
       if (productsToRemoveFromNotified.length > 0) {
-        const updatedNotified = previouslyNotified.filter(id => !productsToRemoveFromNotified.includes(id))
+        const updatedNotified = previouslyNotified.filter((id: string) => !productsToRemoveFromNotified.includes(id))
         localStorage.setItem('notified_low_stock_products', JSON.stringify(updatedNotified))
       }
     }
@@ -241,8 +241,6 @@ export default function Dashboard() {
           <Download className="h-4 w-4 mr-2" />
           Export Excel
         </button>
-        {notificationPermission === 'default' && (
-        )}
       </div>
 
       {/* Metric Cards */}

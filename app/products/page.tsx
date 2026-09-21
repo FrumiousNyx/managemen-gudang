@@ -5,12 +5,14 @@ import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
-import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search, Download, Upload, FileSpreadsheet } from 'lucide-react'
+import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search, Download, Upload, FileSpreadsheet, ChevronDown } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import * as XLSX from 'xlsx'
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([])
+  const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false)
   const [isStockModalOpen, setIsStockModalOpen] = useState(false)
@@ -30,6 +32,7 @@ export default function Products() {
     sku: ''
   })
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: string[] }>({
     success: 0,
@@ -42,11 +45,8 @@ export default function Products() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set())
   const [showBulkActions, setShowBulkActions] = useState(false)
+  const [displayCount, setDisplayCount] = useState(100)
   const { showToast } = useToast()
-
-  useEffect(() => {
-    fetchProducts()
-  }, [])
 
   const fetchProducts = async () => {
     if (!supabase) {
@@ -55,39 +55,69 @@ export default function Products() {
       return
     }
 
+    setLoading(true)
+
     try {
+      // Fetch first 500 products
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('name', { ascending: true })
+        .limit(500)
 
       if (error) throw error
-      setProducts(data || [])
+
+      const products = data || []
+      setAllProducts(products)
+      setProducts(products)
+      setFilteredProducts(products)
+      setDisplayCount(Math.min(100, products.length))
+
+      // Clear cache for real-time data
+      cache.delete(CACHE_KEYS.PRODUCTS)
     } catch (error) {
       console.error('Error fetching products:', error)
       showToast('error', 'Gagal memuat produk')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const filteredProducts = products.filter((product) => {
-    // Search filter
-    if (searchQuery.trim()) {
-      const keywords = searchQuery.toLowerCase().trim().split(/\s+/)
-      const searchTarget = `${product.sku} ${product.name} ${product.color} ${product.size}`.toLowerCase()
-      if (!keywords.every((keyword) => searchTarget.includes(keyword))) {
-        return false
+  const loadMore = () => {
+    setLoadingMore(true)
+    const newCount = Math.min(displayCount + 100, filteredProducts.length)
+    setDisplayCount(newCount)
+    setLoadingMore(false)
+  }
+
+  useEffect(() => {
+    const filtered = allProducts.filter((product) => {
+      // Search filter
+      if (searchQuery.trim()) {
+        const keywords = searchQuery.toLowerCase().trim().split(/\s+/)
+        const searchTarget = `${product.sku} ${product.name} ${product.color} ${product.size}`.toLowerCase()
+        if (!keywords.every((keyword) => searchTarget.includes(keyword))) {
+          return false
+        }
       }
-    }
 
-    // Status filter
-    if (statusFilter === 'low') {
-      return isLowStock(product) && product.stock > 0
-    } else if (statusFilter === 'out') {
-      return product.stock === 0
-    }
+      // Status filter
+      if (statusFilter === 'low') {
+        return isLowStock(product) && product.stock > 0
+      } else if (statusFilter === 'out') {
+        return product.stock === 0
+      }
 
-    return true
-  })
+      return true
+    })
+
+    setFilteredProducts(filtered)
+    setDisplayCount(Math.min(100, filtered.length))
+  }, [searchQuery, statusFilter, allProducts])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [])
 
   // Custom size order for sorting
   const sizeOrder: { [key: string]: number } = {
@@ -136,7 +166,8 @@ export default function Products() {
   })
 
   const exportToExcel = () => {
-    const exportData = sortedProducts.map(product => ({
+    // Export all filtered products, not just displayed ones
+    const exportData = filteredProducts.map(product => ({
       SKU: product.sku,
       'Nama Produk': product.name,
       Warna: product.color,
@@ -311,11 +342,12 @@ export default function Products() {
   }
 
   const handleSelectAll = () => {
-    if (selectedProducts.size === sortedProducts.length) {
+    const visibleProducts = sortedProducts.slice(0, displayCount)
+    if (selectedProducts.size === visibleProducts.length) {
       setSelectedProducts(new Set())
       setShowBulkActions(false)
     } else {
-      setSelectedProducts(new Set(sortedProducts.map(p => p.id)))
+      setSelectedProducts(new Set(visibleProducts.map(p => p.id)))
       setShowBulkActions(true)
     }
   }
@@ -928,7 +960,7 @@ export default function Products() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-zinc-800 divide-y divide-slate-200 dark:divide-zinc-800">
-              {sortedProducts.map((product) => {
+              {sortedProducts.slice(0, displayCount).map((product) => {
                 const status = getStockStatus(product)
                 return (
                   <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
@@ -1005,12 +1037,35 @@ export default function Products() {
               )}
             </tbody>
           </table>
+
+          {/* Load More Button - Desktop */}
+          {displayCount < sortedProducts.length && (
+            <div className="px-4 py-3 border-t border-slate-200 dark:border-zinc-800">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="w-full flex items-center justify-center px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingMore ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-400 border-t-slate-600 mr-2"></div>
+                    Memuat...
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-2" />
+                    Tampilkan Lebih Banyak ({displayCount} dari {sortedProducts.length})
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
-        {sortedProducts.map((product) => {
+        {sortedProducts.slice(0, displayCount).map((product) => {
           const status = getStockStatus(product)
           return (
             <div key={product.id} className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
@@ -1075,6 +1130,25 @@ export default function Products() {
           <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-12 text-center text-slate-500 dark:text-zinc-400">
             Tidak ada produk ditemukan. Tambah SKU pertama Anda untuk memulai.
           </div>
+        )}
+        {displayCount < sortedProducts.length && (
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="w-full mt-4 flex items-center justify-center px-4 py-3 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingMore ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-400 border-t-slate-600 mr-2"></div>
+                Memuat...
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4 mr-2" />
+                Tampilkan Lebih Banyak ({displayCount} dari {sortedProducts.length})
+              </>
+            )}
+          </button>
         )}
       </div>
 

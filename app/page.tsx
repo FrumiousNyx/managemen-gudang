@@ -6,16 +6,20 @@ import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { CardSkeleton, TableSkeleton, ProductCardSkeleton, Skeleton } from '@/components/skeleton'
 import { useToast } from '@/components/toast-provider'
-import { Search, Package, AlertTriangle, CheckCircle, Download, Bell } from 'lucide-react'
+import { Search, Package, AlertTriangle, CheckCircle, Download, Bell, ChevronDown } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([])
+  const [allProducts, setAllProducts] = useState<Product[]>([]) // For filtering
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'low' | 'out'>('all')
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
+  const [displayCount, setDisplayCount] = useState(100)
+  const [totalCount, setTotalCount] = useState(0)
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -33,7 +37,7 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
-    let filtered = products.filter(
+    let filtered = allProducts.filter(
       (product) =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -49,7 +53,8 @@ export default function Dashboard() {
     }
 
     setFilteredProducts(filtered)
-  }, [searchTerm, statusFilter, products])
+    setDisplayCount(Math.min(100, filtered.length))
+  }, [searchTerm, statusFilter, allProducts])
 
   const fetchProducts = async () => {
     if (!supabase) {
@@ -58,34 +63,49 @@ export default function Dashboard() {
       return
     }
 
-    try {
-      // Try to get from cache first
-      const cachedData = cache.get(CACHE_KEYS.PRODUCTS)
-      if (cachedData) {
-        setProducts(cachedData)
-        setFilteredProducts(cachedData)
-        setLoading(false)
-        return
-      }
+    setLoading(true)
 
+    try {
+      // Get total count first
+      const { count, error: countError } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: false })
+
+      if (countError) throw countError
+
+      setTotalCount(count || 0)
+
+      // Fetch first 500 products (batch 1)
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('name', { ascending: true })
+        .limit(500)
 
       if (error) throw error
-      
+
       const products = data || []
+      setAllProducts(products)
       setProducts(products)
       setFilteredProducts(products)
-      
-      // Cache the results for 5 minutes
-      cache.set(CACHE_KEYS.PRODUCTS, products, 5 * 60 * 1000)
+      setDisplayCount(Math.min(100, products.length))
+
+      // Clear cache on fetch for real-time data
+      cache.delete(CACHE_KEYS.PRODUCTS)
     } catch (error) {
       console.error('Error fetching products:', error)
+      showToast('error', 'Gagal memuat produk')
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadMore = () => {
+    setLoadingMore(true)
+    // Double the display count
+    const newCount = Math.min(displayCount + 100, filteredProducts.length)
+    setDisplayCount(newCount)
+    setLoadingMore(false)
   }
 
   const totalSKUs = products.length
@@ -310,7 +330,7 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-zinc-800 divide-y divide-slate-200 dark:divide-zinc-800">
-              {filteredProducts.map((product) => {
+              {filteredProducts.slice(0, displayCount).map((product) => {
                 const status = getStockStatus(product)
                 return (
                   <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
@@ -347,11 +367,34 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
+
+        {/* Load More Button */}
+        {displayCount < filteredProducts.length && (
+          <div className="px-4 py-3 border-t border-slate-200 dark:border-zinc-800">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full flex items-center justify-center px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingMore ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-400 border-t-slate-600 mr-2"></div>
+                  Memuat...
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-2" />
+                  Tampilkan Lebih Banyak ({displayCount} dari {filteredProducts.length})
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
-        {filteredProducts.map((product) => {
+        {filteredProducts.slice(0, displayCount).map((product) => {
           const status = getStockStatus(product)
           return (
             <div key={product.id} className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-4">
@@ -385,6 +428,25 @@ export default function Dashboard() {
           <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-12 text-center text-slate-500 dark:text-zinc-400">
             Tidak ada produk yang cocok dengan pencarian Anda.
           </div>
+        )}
+        {displayCount < filteredProducts.length && (
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="w-full mt-4 flex items-center justify-center px-4 py-3 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingMore ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-400 border-t-slate-600 mr-2"></div>
+                Memuat...
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4 mr-2" />
+                Tampilkan Lebih Banyak ({displayCount} dari {filteredProducts.length})
+              </>
+            )}
+          </button>
         )}
       </div>
     </div>

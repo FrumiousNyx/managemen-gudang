@@ -58,13 +58,15 @@ export default function QCInbound() {
     }
   }
 
-  const filteredProducts = products.filter(
-    (product) =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.color.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.size.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredProducts = products.filter((product) => {
+    if (!searchTerm.trim()) return true
+
+    const keywords = searchTerm.toLowerCase().trim().split(/\s+/)
+    const searchTarget = `${product.name} ${product.sku} ${product.color} ${product.size}`.toLowerCase()
+
+    // All keywords must match (AND logic)
+    return keywords.every((keyword) => searchTarget.includes(keyword))
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

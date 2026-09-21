@@ -24,7 +24,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchProducts()
-    
+
     // Request notification permission
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission)
@@ -35,6 +35,43 @@ export default function Dashboard() {
       }
     }
   }, [])
+
+  // Smart notification: only notify once per product when it becomes low stock
+  useEffect(() => {
+    if (!loading && allProducts.length > 0 && notificationPermission === 'granted') {
+      const lowStockProducts = allProducts.filter(p => isLowStock(p) && p.stock > 0)
+
+      // Get previously notified products from localStorage
+      const previouslyNotified = JSON.parse(localStorage.getItem('notified_low_stock_products') || '[]')
+
+      // Find new low stock products that haven't been notified
+      const newLowStockProducts = lowStockProducts.filter(p => !previouslyNotified.includes(p.id))
+
+      if (newLowStockProducts.length > 0) {
+        // Send notification for new low stock products
+        const productNames = newLowStockProducts.map(p => `${p.name} (${p.color}/${p.size})`).join(', ')
+        new Notification('Peringatan Stok Menipis', {
+          body: `${newLowStockProducts.length} produk stok menipis: ${productNames}`,
+          icon: '/favicon.ico'
+        })
+
+        // Update localStorage with newly notified products
+        const updatedNotified = [...previouslyNotified, ...newLowStockProducts.map(p => p.id)]
+        localStorage.setItem('notified_low_stock_products', JSON.stringify(updatedNotified))
+      }
+
+      // Remove products from notified list if they are no longer low stock
+      const productsToRemoveFromNotified = previouslyNotified.filter(id => {
+        const product = allProducts.find(p => p.id === id)
+        return product && !isLowStock(product)
+      })
+
+      if (productsToRemoveFromNotified.length > 0) {
+        const updatedNotified = previouslyNotified.filter(id => !productsToRemoveFromNotified.includes(id))
+        localStorage.setItem('notified_low_stock_products', JSON.stringify(updatedNotified))
+      }
+    }
+  }, [loading, allProducts])
 
   useEffect(() => {
     let filtered = allProducts.filter(
@@ -205,14 +242,6 @@ export default function Dashboard() {
           Export Excel
         </button>
         {notificationPermission === 'default' && (
-          <button
-            onClick={() => Notification.requestPermission().then(setNotificationPermission)}
-            className="flex items-center px-4 py-2 bg-amber-500 text-white font-medium rounded-xl hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all"
-            title="Aktifkan notifikasi browser"
-          >
-            <Bell className="h-4 w-4 mr-2" />
-            Aktifkan Notifikasi
-          </button>
         )}
       </div>
 

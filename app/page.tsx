@@ -193,28 +193,34 @@ export default function Dashboard() {
     }
   }, [loading, products.length, notificationPermission])
 
-  // Fetch return and damage counts
+  // Fetch return and damage counts for current month only
   useEffect(() => {
     const fetchReturnDamageCounts = async () => {
       if (!supabase) return
 
       try {
-        // Get return count
+        // Get current month start date
+        const now = new Date()
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        
+        // Get return count for current month
         const { data: returnData, error: returnError } = await supabase
           .from('inventory_logs')
           .select('qty')
           .eq('type', 'RETURN')
+          .gte('created_at', startOfMonth.toISOString())
         
         if (!returnError && returnData) {
           const totalReturns = returnData.reduce((sum, log) => sum + Math.abs(log.qty), 0)
           setReturnCount(totalReturns)
         }
 
-        // Get damage count
+        // Get damage count for current month
         const { data: damageData, error: damageError } = await supabase
           .from('inventory_logs')
           .select('qty')
           .eq('type', 'DAMAGE')
+          .gte('created_at', startOfMonth.toISOString())
         
         if (!damageError && damageData) {
           const totalDamages = damageData.reduce((sum, log) => sum + Math.abs(log.qty), 0)
@@ -333,7 +339,7 @@ export default function Dashboard() {
             <div className="flex-1 min-w-0">
               <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-zinc-400">Retur Barang</p>
               <p className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-1 sm:mt-2">{returnCount}</p>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1">unit</p>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1">unit bulan ini</p>
             </div>
             <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center flex-shrink-0 ml-2">
               <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />

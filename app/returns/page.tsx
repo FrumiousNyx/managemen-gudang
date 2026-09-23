@@ -36,7 +36,6 @@ export default function ReturnsPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(true)
-  const [returnRate, setReturnRate] = useState('0')
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -133,58 +132,6 @@ export default function ReturnsPage() {
     setEndDate('')
     fetchLogs()
   }
-
-  // Calculate return rate when logs or date filters change
-  useEffect(() => {
-    const calculateReturnRate = async () => {
-      if (!supabase) return
-      
-      try {
-        let query = supabase
-          .from('inventory_logs')
-          .select('qty')
-          .eq('type', 'OUTBOUND_PACKING')
-        
-        // Use date filters if provided, otherwise use current month
-        if (startDate) {
-          query = query.gte('created_at', startDate)
-        } else {
-          const now = new Date()
-          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-          query = query.gte('created_at', startOfMonth.toISOString())
-        }
-        
-        if (endDate) {
-          const endDateTime = new Date(endDate)
-          endDateTime.setDate(endDateTime.getDate() + 1)
-          query = query.lt('created_at', endDateTime.toISOString())
-        }
-        
-        const { data: salesData, error } = await query
-        
-        if (error || !salesData) {
-          setReturnRate('0')
-          return
-        }
-        
-        const totalSales = salesData.reduce((sum, log) => sum + Math.abs(log.qty), 0)
-        
-        if (totalSales === 0) {
-          setReturnRate('0')
-          return
-        }
-        
-        const currentReturnQty = logs.filter(l => l.type === 'RETURN').reduce((sum, l) => sum + Math.abs(l.qty), 0)
-        const rate = (currentReturnQty / totalSales * 100).toFixed(1)
-        setReturnRate(rate)
-      } catch (error) {
-        console.error('Error calculating return rate:', error)
-        setReturnRate('0')
-      }
-    }
-
-    calculateReturnRate()
-  }, [logs, startDate, endDate])
 
   // Calculate metrics
   const totalReturns = logs.filter(l => l.type === 'RETURN').length
@@ -422,19 +369,6 @@ export default function ReturnsPage() {
             </div>
             <div className="h-12 w-12 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
               <TrendingUp className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Rate Retur</p>
-              <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{returnRate}%</p>
-              <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">{startDate && endDate ? 'berdasarkan filter tanggal' : 'bulan ini'}</p>
-            </div>
-            <div className="h-12 w-12 rounded-xl bg-purple-50 dark:bg-purple-950 flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
         </div>

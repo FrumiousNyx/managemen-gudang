@@ -192,21 +192,6 @@ export default function Analytics() {
     const returnLogs = filteredLogs.filter(log => log.type === 'RETURN')
     const totalReturns = returnLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
     
-    // Calculate sales based on date filter
-    let salesLogs = filteredLogs.filter(log => log.type === 'OUTBOUND_PACKING')
-    
-    // If date filter is applied, salesLogs is already filtered
-    // If no date filter, use current month
-    if (!startDate && !endDate) {
-      const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      salesLogs = salesLogs.filter(log => new Date(log.created_at) >= startOfMonth)
-    }
-    
-    const totalSales = salesLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
-    
-    const returnRate = totalSales > 0 ? (totalReturns / totalSales * 100).toFixed(1) : '0'
-    
     // Breakdown by return reason
     const reasonMap = new Map<string, number>()
     returnLogs.forEach(log => {
@@ -221,27 +206,13 @@ export default function Analytics() {
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 5)
     
-    return { totalReturns, returnRate, reasonBreakdown, totalSales }
+    return { totalReturns, reasonBreakdown }
   }
 
-  // Get damage metrics - calculate based on date filter
+  // Get damage metrics
   const getDamageMetrics = () => {
     const damageLogs = filteredLogs.filter(log => log.type === 'DAMAGE')
     const totalDamages = damageLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
-    
-    // Calculate sales based on date filter (same as return metrics)
-    let salesLogs = filteredLogs.filter(log => log.type === 'OUTBOUND_PACKING')
-    
-    // If date filter is applied, salesLogs is already filtered
-    // If no date filter, use current month
-    if (!startDate && !endDate) {
-      const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      salesLogs = salesLogs.filter(log => new Date(log.created_at) >= startOfMonth)
-    }
-    
-    const totalSales = salesLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
-    const damageRate = totalSales > 0 ? (totalDamages / totalSales * 100).toFixed(1) : '0'
     
     // Breakdown by damage type
     const typeMap = new Map<string, number>()
@@ -257,7 +228,7 @@ export default function Analytics() {
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 5)
     
-    return { totalDamages, damageRate, typeBreakdown }
+    return { totalDamages, typeBreakdown }
   }
 
   // Get sales trend data for line chart (last 7 days)
@@ -424,8 +395,7 @@ export default function Analytics() {
       doc.text('Metrik Retur', 14, startY)
       
       const returnData = [
-        ['Total Retur', returnMetrics.totalReturns.toString()],
-        ['Rate Retur', `${returnMetrics.returnRate}%`]
+        ['Total Retur', returnMetrics.totalReturns.toString()]
       ]
       
       autoTable(doc, {
@@ -479,8 +449,7 @@ export default function Analytics() {
       doc.text('Metrik Kerusakan', 14, startY)
       
       const damageData = [
-        ['Total Kerusakan', damageMetrics.totalDamages.toString()],
-        ['Rate Kerusakan', `${damageMetrics.damageRate}%`]
+        ['Total Kerusakan', damageMetrics.totalDamages.toString()]
       ]
       
       autoTable(doc, {
@@ -718,7 +687,7 @@ export default function Analytics() {
       </div>
 
       {/* Return & Damage Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mb-8">
         <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -728,19 +697,6 @@ export default function Analytics() {
             </div>
             <div className="h-12 w-12 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
               <RotateCcw className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Rate Retur</p>
-              <p className="text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-2">{returnMetrics.returnRate}%</p>
-              <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">{startDate && endDate ? 'filter tanggal' : 'bulan ini'}</p>
-            </div>
-            <div className="h-12 w-12 rounded-xl bg-cyan-50 dark:bg-cyan-950 flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
             </div>
           </div>
         </div>

@@ -92,6 +92,23 @@ export function Navigation() {
     setIsMobileMenuOpen(false)
   }, [pathname])
 
+  // Close notifications when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      const notificationDropdown = document.querySelector('[data-notification-dropdown]')
+      
+      if (showNotifications && notificationDropdown && !notificationDropdown.contains(target)) {
+        setShowNotifications(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showNotifications])
+
   const handleLogout = async () => {
     await signOut()
     router.push('/login')
@@ -145,7 +162,80 @@ export function Navigation() {
     <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-zinc-900/80 border-b border-slate-200 dark:border-zinc-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
+            {/* Mobile Notification Toggle - Left Side */}
+            <div className="relative md:hidden">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="inline-flex items-center justify-center p-2 rounded-xl text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100"
+                title="Notifikasi Stok"
+              >
+                <Bell className="h-5 w-5" />
+                {outOfStockCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    {outOfStockCount}
+                  </span>
+                )}
+              </button>
+              
+              {/* Mobile Notification Dropdown */}
+              {showNotifications && (
+                <div className="absolute left-0 mt-2 w-80 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-slate-200 dark:border-zinc-800 z-50" data-notification-dropdown>
+                  <div className="p-4 border-b border-slate-200 dark:border-zinc-800">
+                    <h3 className="font-semibold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-orange-500" />
+                      Notifikasi Stok
+                    </h3>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {lowStockProducts.length === 0 ? (
+                      <div className="p-4 text-center text-slate-600 dark:text-zinc-400">
+                        Tidak ada notifikasi
+                      </div>
+                    ) : (
+                      lowStockProducts.map((product) => (
+                        <Link
+                          key={product.id}
+                          href="/products"
+                          onClick={() => setShowNotifications(false)}
+                          className="block px-4 py-3 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors border-b border-slate-100 dark:border-zinc-800 last:border-0"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-slate-900 dark:text-zinc-100 truncate">
+                                {product.name}
+                              </div>
+                              <div className="text-sm text-slate-600 dark:text-zinc-400">
+                                {product.sku} - {product.color} - {product.size}
+                              </div>
+                            </div>
+                            <div className={`ml-3 px-2 py-1 rounded-lg text-xs font-bold ${
+                              product.stock === 0
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                            }`}>
+                              {product.stock === 0 ? 'HABIS' : product.stock}
+                            </div>
+                          </div>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                  {lowStockProducts.length > 0 && (
+                    <div className="p-3 border-t border-slate-200 dark:border-zinc-800">
+                      <Link
+                        href="/products"
+                        onClick={() => setShowNotifications(false)}
+                        className="block text-center text-sm text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100"
+                      >
+                        Lihat Semua Produk
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
             <Package className="h-7 w-7 text-slate-900 dark:text-zinc-100" />
             <span className="ml-2 text-lg font-semibold text-slate-900 dark:text-zinc-100">Sistem Inventaris</span>
           </div>
@@ -192,7 +282,7 @@ export function Navigation() {
               
               {/* Notification Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-slate-200 dark:border-zinc-800 z-50">
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-slate-200 dark:border-zinc-800 z-50" data-notification-dropdown>
                   <div className="p-4 border-b border-slate-200 dark:border-zinc-800">
                     <h3 className="font-semibold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -289,50 +379,6 @@ export function Navigation() {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 animate-in slide-in-from-top-2 duration-200">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            {/* Mobile Notifications */}
-            <div className="px-4 py-2 border-b border-slate-200 dark:border-zinc-800">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-900 dark:text-zinc-100">
-                  Notifikasi Stok
-                </span>
-                {outOfStockCount > 0 && (
-                  <span className="h-6 w-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                    {outOfStockCount}
-                  </span>
-                )}
-              </div>
-              {lowStockProducts.length > 0 && (
-                <div className="mt-2 space-y-2">
-                  {lowStockProducts.slice(0, 3).map((product) => (
-                    <Link
-                      key={product.id}
-                      href="/products"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="block p-2 bg-slate-50 dark:bg-zinc-800 rounded-lg"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-slate-900 dark:text-zinc-100 truncate">
-                            {product.name}
-                          </div>
-                          <div className="text-xs text-slate-600 dark:text-zinc-400">
-                            {product.sku}
-                          </div>
-                        </div>
-                        <div className={`ml-2 px-2 py-1 rounded-lg text-xs font-bold ${
-                          product.stock === 0
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                            : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                        }`}>
-                          {product.stock === 0 ? 'HABIS' : product.stock}
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Navigation Items */}
             {filteredNavItems.map((item) => {
               const Icon = item.icon

@@ -17,14 +17,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true)
-    // Check localStorage and system preference
+    // Check localStorage for saved theme preference
     const savedTheme = localStorage.getItem('theme') as Theme | null
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    
     if (savedTheme) {
       setTheme(savedTheme)
-    } else if (systemPrefersDark) {
-      setTheme('dark')
+    } else {
+      // Check system preference
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      setTheme(systemPrefersDark ? 'dark' : 'light')
     }
   }, [])
 
@@ -55,8 +55,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useTheme() {
   const context = useContext(ThemeContext)
   if (context === undefined) {
-    // Return default values if provider is not available (for SSR)
-    return { theme: 'light', toggleTheme: () => {} }
+    throw new Error('useTheme must be used within a ThemeProvider')
   }
   return context
 }

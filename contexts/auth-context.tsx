@@ -4,93 +4,114 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 
+interface AppUser {
+  id: string
+  email: string
+  full_name: string
+  role: 'admin' | 'staff' | 'viewer'
+  is_active: boolean
+}
+
 interface AuthContextType {
   user: User | null
+  appUser: AppUser | null
   session: Session | null
   loading: boolean
   isAdmin: boolean
+  isStaff: boolean
+  isViewer: boolean
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [appUser, setAppUser] = useState<AppUser | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Calculate user roles
+  const isAdmin = appUser?.role === 'admin'
+  const isStaff = appUser?.role === 'staff' || isAdmin
+  const isViewer = appUser?.role === 'viewer' || isStaff || isAdmin
 
   useEffect(() => {
-    // Check for admin session in localStorage
-    const adminSession = localStorage.getItem('admin_session')
-    const adminTimestamp = localStorage.getItem('admin_timestamp')
+    console.log('AuthContext: Checking for session in localStorage')
     
-    // Check if admin session is valid (24 hours)
-    if (adminSession === 'true' && adminTimestamp) {
-      const timestamp = parseInt(adminTimestamp)
+    // Check for session in localStorage (custom authentication)
+    const userEmail = localStorage.getItem('user_email')
+    const userRole = localStorage.getItem('user_role')
+    const userName = localStorage.getItem('user_name')
+    const loginTimestamp = localStorage.getItem('login_timestamp')
+
+    console.log('AuthContext: Found session data:', { userEmail, userRole, userName })
+
+    if (userEmail && userRole && userName) {
+      // Check if session is valid (24 hours)
+      const timestamp = parseInt(loginTimestamp || '0')
       const hoursSinceLogin = (Date.now() - timestamp) / (1000 * 60 * 60)
       
+      console.log('AuthContext: Hours since login:', hoursSinceLogin)
+      
       if (hoursSinceLogin < 24) {
-        setIsAdmin(true)
+        // Session is valid
+        console.log('AuthContext: Session is valid, setting appUser')
+        setAppUser({
+          id: 'custom-user',
+          email: userEmail,
+          full_name: userName,
+          role: userRole as 'admin' | 'staff' | 'viewer',
+          is_active: true
+        })
         setLoading(false)
         return
       } else {
-        // Clear expired admin session
-        localStorage.removeItem('admin_session')
-        localStorage.removeItem('admin_timestamp')
+        // Session expired
+        console.log('AuthContext: Session expired, clearing localStorage')
+        localStorage.removeItem('user_email')
+        localStorage.removeItem('user_role')
+        localStorage.removeItem('user_name')
+        localStorage.removeItem('login_timestamp')
       }
     }
 
-    if (!supabase) {
-      setLoading(false)
-      return
-    }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
+    console.log('AuthContext: No valid session found')
+    setLoading(false)
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    if (!supabase) {
-      return { error: new Error('Supabase not initialized') }
-    }
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { error }
+    // This is now handled in the login page
+    return { error: null }
   }
 
   const signOut = async () => {
-    // Clear admin session
-    localStorage.removeItem('admin_session')
-    localStorage.removeItem('admin_timestamp')
-    document.cookie = 'admin_session=; path=/; max-age=0'
-    setIsAdmin(false)
+    console.log('AuthContext: Signing out')
+    // Clear custom session
+    localStorage.removeItem('user_email')
+    localStorage.removeItem('user_role')
+    localStorage.removeItem('user_name')
+    localStorage.removeItem('login_timestamp')
     
-    // Clear Supabase session
-    if (!supabase) return
-    await supabase.auth.signOut()
+    // Clear the session cookie
+    document.cookie = 'user_session=; path=/; max-age=0'
+    
+    setAppUser(null)
+    setUser(null)
+    setSession(null)
+    
+    // Force reload to clear any cached state
+    window.location.href = '/login'
+  }
+
+  const refreshUser = async () => {
+    // Refresh logic if needed
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, appUser, session, loading, isAdmin, isStaff, isViewer, signIn, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
 import { CardSkeleton, Skeleton } from '@/components/skeleton'
-import { TrendingUp, Package, Calendar, BarChart3, ArrowUp, Download, RotateCcw, AlertTriangle } from 'lucide-react'
+import { TrendingUp, Package, Calendar, BarChart3, ArrowUp, Download, RotateCcw, AlertTriangle, RefreshCw } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -56,22 +56,13 @@ export default function Analytics() {
 
     setLoading(true)
     try {
-      // Try to get from cache first
-      const cachedData = cache.get(CACHE_KEYS.ANALYTICS_LOGS)
-      if (cachedData) {
-        setLogs(cachedData)
-        setFilteredLogs(cachedData)
-        setLoading(false)
-        return
-      }
-
+      // Force refresh to get all log types including RETURN and DAMAGE
       const { data, error } = await supabase
         .from('inventory_logs')
         .select(`
           *,
           product:products(name, sku, color, size)
         `)
-        .eq('type', 'OUTBOUND_PACKING')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -597,14 +588,27 @@ export default function Analytics() {
       <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-slate-900 dark:text-zinc-100">Filter Tanggal</h3>
-          <button
-            onClick={exportToPDF}
-            disabled={filteredLogs.length === 0}
-            className="flex items-center px-3 py-2 text-sm bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 hover:bg-slate-800 dark:hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Export PDF
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                cache.delete(CACHE_KEYS.ANALYTICS_LOGS)
+                fetchLogs()
+              }}
+              disabled={loading}
+              className="flex items-center px-3 py-2 text-sm bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button
+              onClick={exportToPDF}
+              disabled={filteredLogs.length === 0}
+              className="flex items-center px-3 py-2 text-sm bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-800 hover:bg-slate-800 dark:hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Export PDF
+            </button>
+          </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="flex-1">

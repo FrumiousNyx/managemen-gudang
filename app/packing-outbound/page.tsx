@@ -6,6 +6,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode'
 import { supabase, Product } from '@/lib/supabase'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
+import { StaffGuard } from '@/components/admin-guard'
 import { Scan, Package, AlertCircle, CheckCircle, XCircle, Layers, Zap, Camera, CameraOff, RotateCw, RotateCcw } from 'lucide-react'
 import { getReturnReasonOptions, getReturnReasonLabel } from '@/lib/stock-utils'
 
@@ -502,7 +503,8 @@ export default function PackingOutbound() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <StaffGuard>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Barang Keluar</h1>
@@ -835,5 +837,6 @@ export default function PackingOutbound() {
         </div>
       )}
     </div>
+    </StaffGuard>
   )
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
+import { StaffGuard } from '@/components/admin-guard'
 import { Skeleton } from '@/components/skeleton'
 import { RotateCcw, AlertTriangle, Filter, Calendar, Download, TrendingUp, Package } from 'lucide-react'
 import jsPDF from 'jspdf'
@@ -311,7 +312,8 @@ export default function ReturnsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <StaffGuard>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Retur & Barang Rusak</h1>
         <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Kelola dan lacak retur serta barang rusak</p>
@@ -597,5 +599,6 @@ export default function ReturnsPage() {
         )}
       </div>
     </div>
+    </StaffGuard>
   )
 }

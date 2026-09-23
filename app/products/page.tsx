@@ -5,6 +5,7 @@ import { supabase, Product } from '@/lib/supabase'
 import { getStockStatus, isLowStock } from '@/lib/stock-utils'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
+import { StaffGuard } from '@/components/admin-guard'
 import { Package, Plus, Edit, Trash2, X, Printer, Save, ArrowUpDown, Search, Download, Upload, FileSpreadsheet, ChevronDown } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import * as XLSX from 'xlsx'
@@ -734,7 +735,8 @@ export default function Products() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <StaffGuard>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Produk</h1>
@@ -1614,5 +1616,6 @@ export default function Products() {
       )}
 
     </div>
+    </StaffGuard>
   )
 }

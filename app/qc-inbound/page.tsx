@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Product } from '@/lib/supabase'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
+import { StaffGuard } from '@/components/admin-guard'
 import { ShoppingCart, Plus, Search, Printer, X, Package, AlertTriangle, RotateCcw } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import { getReturnReasonOptions, getDamageTypeOptions, getReturnReasonLabel, getDamageTypeLabel } from '@/lib/stock-utils'
@@ -459,7 +460,8 @@ export default function QCInbound() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <StaffGuard>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Barang Masuk</h1>
         <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Tambah barang masuk ke stok gudang</p>
@@ -844,5 +846,6 @@ export default function QCInbound() {
       )}
 
     </div>
+    </StaffGuard>
   )
 }

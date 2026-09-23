@@ -2,12 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/auth-context'
+import { supabase } from '@/lib/supabase'
 import { Lock, Mail, AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -18,32 +17,65 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    // Check admin credentials from environment variables
-    const adminUsername = process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin'
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin'
+    try {
+      if (!supabase) {
+        setError('Database tidak tersedia')
+        setLoading(false)
+        return
+      }
 
-    if (email === adminUsername && password === adminPassword) {
-      // Store admin session in localStorage and cookie
-      localStorage.setItem('admin_session', 'true')
-      localStorage.setItem('admin_timestamp', Date.now().toString())
-      
-      // Set cookie for middleware
-      document.cookie = 'admin_session=true; path=/; max-age=86400' // 24 hours
-      
-      setTimeout(() => {
-        router.push('/')
-      }, 500)
-      return
-    }
+      console.log('Attempting login for:', email)
 
-    // For other users, use Supabase authentication
-    const { error } = await signIn(email, password)
+      // Check if user exists in our users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single()
 
-    if (error) {
-      setError(error.message || 'Login gagal')
+      console.log('User data:', userData)
+      console.log('User error:', userError)
+
+      if (userError || !userData) {
+        console.error('User not found or error:', userError)
+        setError('Email atau password salah')
+        setLoading(false)
+        return
+      }
+
+      if (!userData.is_active) {
+        setError('Akun Anda dinonaktifkan. Hubungi admin.')
+        setLoading(false)
+        return
+      }
+
+      // Check password
+      if (userData.password_hash !== password) {
+        console.error('Password mismatch')
+        setError('Email atau password salah')
+        setLoading(false)
+        return
+      }
+
+      console.log('Login successful, setting session...')
+
+      // Set user session using localStorage
+      localStorage.setItem('user_email', email)
+      localStorage.setItem('user_role', userData.role)
+      localStorage.setItem('user_name', userData.full_name)
+      localStorage.setItem('login_timestamp', Date.now().toString())
+
+      // Set a cookie for middleware to check (expires in 24 hours)
+      document.cookie = 'user_session=true; path=/; max-age=86400'
+
+      console.log('Session set, redirecting...')
+
+      // Force page reload to ensure auth context picks up the session
+      window.location.href = '/'
+    } catch (err: any) {
+      console.error('Login error:', err)
+      setError('Terjadi kesalahan: ' + (err.message || 'Unknown error'))
       setLoading(false)
-    } else {
-      router.push('/')
     }
   }
 

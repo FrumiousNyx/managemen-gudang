@@ -33,6 +33,7 @@ export default function PackingOutbound() {
   const [showReturnModal, setShowReturnModal] = useState(false)
   const [returnReason, setReturnReason] = useState('')
   const [returnQuantity, setReturnQuantity] = useState('1')
+  const [autoCloseModal, setAutoCloseModal] = useState(true)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
@@ -45,8 +46,8 @@ export default function PackingOutbound() {
       const scanner = new Html5QrcodeScanner(
         "reader",
         {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
+          fps: 30,
+          qrbox: { width: 300, height: 300 },
           aspectRatio: 1.0,
         },
         false
@@ -89,6 +90,16 @@ export default function PackingOutbound() {
       setQuantity('1')
     }
   }, [scanMode])
+
+  // Auto-close success modal when in camera mode
+  useEffect(() => {
+    if (showSuccessModal && isCameraActive && autoCloseModal) {
+      const timer = setTimeout(() => {
+        handleScanAgain()
+      }, 1000) // Auto-close after 1 second
+      return () => clearTimeout(timer)
+    }
+  }, [showSuccessModal, isCameraActive, autoCloseModal])
 
   // Play success beep sound
   const playSuccessSound = () => {
@@ -234,13 +245,11 @@ export default function PackingOutbound() {
       // Refresh router to update other pages
       router.refresh()
       
-      // Auto-resume scanner after 2 seconds
-      setTimeout(() => {
-        if (scannerRef.current) {
-          scannerRef.current.resume()
-        }
-        isProcessing.current = false
-      }, 2000)
+      // Auto-resume scanner immediately
+      if (scannerRef.current) {
+        scannerRef.current.resume()
+      }
+      isProcessing.current = false
     } catch (error) {
       console.error('Error processing scan:', error)
       setErrorMessage('Error memproses pindai')
@@ -556,26 +565,39 @@ export default function PackingOutbound() {
             <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400">
               Metode Pindai
             </label>
-            <button
-              onClick={() => setIsCameraActive(!isCameraActive)}
-              className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                isCameraActive
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
-              }`}
-            >
-              {isCameraActive ? (
-                <>
-                  <CameraOff className="h-4 w-4 mr-1" />
-                  Matikan Kamera
-                </>
-              ) : (
-                <>
-                  <Camera className="h-4 w-4 mr-1" />
-                  Aktifkan Kamera
-                </>
+            <div className="flex items-center gap-2">
+              {isCameraActive && (
+                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={autoCloseModal}
+                    onChange={(e) => setAutoCloseModal(e.target.checked)}
+                    className="rounded border-slate-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
+                  />
+                  Auto-tutup
+                </label>
               )}
-            </button>
+              <button
+                onClick={() => setIsCameraActive(!isCameraActive)}
+                className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  isCameraActive
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                }`}
+              >
+                {isCameraActive ? (
+                  <>
+                    <CameraOff className="h-4 w-4 mr-1" />
+                    Matikan Kamera
+                  </>
+                ) : (
+                  <>
+                    <Camera className="h-4 w-4 mr-1" />
+                    Aktifkan Kamera
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {isCameraActive ? (

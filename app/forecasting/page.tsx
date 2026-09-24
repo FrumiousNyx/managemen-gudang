@@ -5,7 +5,7 @@ import { supabase, Product } from '@/lib/supabase'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
 import { Skeleton } from '@/components/skeleton'
-import { TrendingUp, TrendingDown, AlertTriangle, Package, Calendar, BarChart3, RefreshCw, Filter, ArrowUp, ArrowDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, AlertTriangle, Package, Calendar, BarChart3, RefreshCw, Filter } from 'lucide-react'
 
 interface ForecastData {
   product: Product
@@ -22,26 +22,30 @@ interface ForecastData {
 }
 
 type ForecastPeriod = '7' | '30' | '90'
+type ViewMode = 'top10' | 'all'
 
 export default function Forecasting() {
   const [forecasts, setForecasts] = useState<ForecastData[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<ForecastPeriod>('30')
   const [sortBy, setSortBy] = useState<'urgency' | 'sales' | 'name'>('urgency')
+  const [viewMode, setViewMode] = useState<ViewMode>('top10')
   const { showToast } = useToast()
 
   useEffect(() => {
     fetchForecasts()
-  }, [period])
+  }, [period, viewMode])
 
   const fetchForecasts = async () => {
     if (!supabase) {
-      showToast('error', 'Koneksi database tidak dikonfigurasi')
+      setError('Koneksi database tidak dikonfigurasi')
       setLoading(false)
       return
     }
 
     setLoading(true)
+    setError(null)
     try {
       // Get all products
       const { data: products, error: productsError } = await supabase
@@ -121,7 +125,12 @@ export default function Forecasting() {
       }
 
       // Sort forecasts
-      const sortedForecasts = [...forecastData].sort((a, b) => {
+      let sortedForecasts = [...forecastData].sort((a, b) => {
+        // In top10 mode, always sort by sales descending first
+        if (viewMode === 'top10') {
+          return b.avgDailySales - a.avgDailySales
+        }
+        
         if (sortBy === 'urgency') {
           const urgencyOrder = { high: 0, medium: 1, low: 2 }
           return urgencyOrder[a.urgency] - urgencyOrder[b.urgency]
@@ -132,9 +141,15 @@ export default function Forecasting() {
         }
       })
 
+      // Apply view mode filter
+      if (viewMode === 'top10') {
+        sortedForecasts = sortedForecasts.slice(0, 10)
+      }
+
       setForecasts(sortedForecasts)
     } catch (error) {
       console.error('Error fetching forecasts:', error)
+      setError(error instanceof Error ? error.message : 'Gagal memuat data forecasting')
       showToast('error', 'Gagal memuat data forecasting')
     } finally {
       setLoading(false)
@@ -179,6 +194,26 @@ export default function Forecasting() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-2xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            <h2 className="text-lg font-semibold text-red-900 dark:text-red-100">Error Loading Forecasting</h2>
+          </div>
+          <p className="text-red-700 dark:text-red-300 mb-4">{error}</p>
+          <button
+            onClick={fetchForecasts}
+            className="px-4 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const highUrgencyCount = forecasts.filter(f => f.urgency === 'high').length
   const mediumUrgencyCount = forecasts.filter(f => f.urgency === 'medium').length
 
@@ -187,7 +222,10 @@ export default function Forecasting() {
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Forecasting Stok</h1>
         <p className="mt-2 text-slate-500 dark:text-zinc-300 text-sm sm:text-base">
-          Prediksi kebutuhan stok berdasarkan data scan SKU (OUTBOUND_PACKING) saja
+          {viewMode === 'top10' 
+            ? 'Top 10 produk terlaris berdasarkan data scan SKU (OUTBOUND_PACKING)'
+            : 'Prediksi kebutuhan stok berdasarkan data scan SKU (OUTBOUND_PACKING) saja'
+          }
         </p>
       </div>
 
@@ -220,7 +258,9 @@ export default function Forecasting() {
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-sm p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-zinc-400">Total Produk</p>
+              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-zinc-400">
+                {viewMode === 'top10' ? 'Top 10 Terlaris' : 'Total Produk'}
+              </p>
               <p className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-zinc-100 mt-1 sm:mt-2">{forecasts.length}</p>
             </div>
             <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center flex-shrink-0 ml-2">
@@ -238,6 +278,30 @@ export default function Forecasting() {
             <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Filter</h2>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-zinc-800 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('top10')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  viewMode === 'top10'
+                    ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-sm'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
+                }`}
+              >
+                Top 10 Terlaris
+              </button>
+              <button
+                onClick={() => setViewMode('all')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  viewMode === 'all'
+                    ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-zinc-100 shadow-sm'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
+                }`}
+              >
+                Semua Produk
+              </button>
+            </div>
+            
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-slate-600 dark:text-zinc-400" />
               <select
@@ -255,12 +319,16 @@ export default function Forecasting() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'urgency' | 'sales' | 'name')}
-                className="px-3 py-2 border border-slate-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                disabled={viewMode === 'top10'}
+                className="px-3 py-2 border border-slate-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="urgency">Urutkan Urgensi</option>
                 <option value="sales">Urutkan Penjualan</option>
                 <option value="name">Urutkan Nama</option>
               </select>
+              {viewMode === 'top10' && (
+                <span className="text-xs text-slate-500 dark:text-zinc-400">(Otomatis by penjualan)</span>
+              )}
             </div>
             <button
               onClick={fetchForecasts}
@@ -351,7 +419,11 @@ export default function Forecasting() {
       {forecasts.length === 0 && (
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-sm p-12 text-center">
           <BarChart3 className="h-12 w-12 text-slate-400 dark:text-zinc-600 mx-auto mb-4" />
-          <p className="text-slate-600 dark:text-zinc-400">Belum ada data scan SKU untuk forecasting</p>
+          <p className="text-slate-600 dark:text-zinc-400">
+            {viewMode === 'top10' 
+              ? 'Belum ada data scan SKU untuk top 10 terlaris' 
+              : 'Belum ada data scan SKU untuk forecasting'}
+          </p>
         </div>
       )}
     </div>

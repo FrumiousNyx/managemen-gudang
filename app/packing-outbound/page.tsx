@@ -7,8 +7,7 @@ import { supabase, Product } from '@/lib/supabase'
 import { cache, CACHE_KEYS } from '@/lib/cache'
 import { useToast } from '@/components/toast-provider'
 import { StaffGuard } from '@/components/admin-guard'
-import { Scan, Package, AlertCircle, CheckCircle, XCircle, Layers, Zap, Camera, CameraOff, RotateCw, RotateCcw } from 'lucide-react'
-import { getReturnReasonOptions, getReturnReasonLabel } from '@/lib/stock-utils'
+import { Scan, Package, AlertCircle, CheckCircle, XCircle, Layers, Zap, Camera, CameraOff, RotateCw } from 'lucide-react'
 
 type ScanMode = 'single' | 'bulk'
 
@@ -30,9 +29,6 @@ export default function PackingOutbound() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [lastScannedProduct, setLastScannedProduct] = useState<Product | null>(null)
   const [lastScannedQty, setLastScannedQty] = useState(0)
-  const [showReturnModal, setShowReturnModal] = useState(false)
-  const [returnReason, setReturnReason] = useState('')
-  const [returnQuantity, setReturnQuantity] = useState('1')
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
@@ -462,76 +458,6 @@ export default function PackingOutbound() {
     showToast('success', 'Sesi pindaian berhasil di-reset')
   }
 
-  const handleReturnItem = async () => {
-    if (!lastScannedProduct || !returnReason) {
-      showToast('error', 'Silakan pilih alasan retur')
-      return
-    }
-
-    if (!supabase) {
-      showToast('error', 'Koneksi database tidak dikonfigurasi')
-      return
-    }
-
-    const qty = parseInt(returnQuantity) || 1
-    if (isNaN(qty) || qty <= 0) {
-      showToast('error', 'Masukkan jumlah yang valid')
-      return
-    }
-
-    if (qty > lastScannedQty) {
-      showToast('error', 'Jumlah retur tidak bisa melebihi jumlah yang dipindai')
-      return
-    }
-
-    isProcessing.current = true
-
-    try {
-      // Add stock back for returned items
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({ stock: lastScannedProduct.stock + qty })
-        .eq('id', lastScannedProduct.id)
-
-      if (updateError) throw updateError
-
-      // Log the return
-      const { error: logError } = await supabase
-        .from('inventory_logs')
-        .insert({
-          product_id: lastScannedProduct.id,
-          type: 'RETURN',
-          qty: qty,
-          notes: `Retur dari packing: ${qty} unit - ${getReturnReasonLabel(returnReason)}`,
-          return_reason: returnReason
-        })
-
-      if (logError) throw logError
-
-      // Clear cache
-      cache.delete(CACHE_KEYS.PRODUCTS)
-      cache.delete(CACHE_KEYS.INVENTORY_LOGS)
-
-      showToast('success', `Berhasil mencatat retur ${qty} unit untuk ${lastScannedProduct.name}`)
-      
-      // Update the last scanned product stock display
-      setLastScannedProduct({ ...lastScannedProduct, stock: lastScannedProduct.stock + qty })
-      
-      // Close modal and reset
-      setShowReturnModal(false)
-      setReturnReason('')
-      setReturnQuantity('1')
-      
-      // Refresh router
-      router.refresh()
-    } catch (error) {
-      console.error('Error recording return:', error)
-      showToast('error', 'Gagal mencatat retur')
-    } finally {
-      isProcessing.current = false
-    }
-  }
-
   return (
     <StaffGuard>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -764,104 +690,12 @@ export default function PackingOutbound() {
                 <p className="text-sm text-slate-600 dark:text-zinc-400">Sisa Stok</p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-zinc-100">{lastScannedProduct.stock}</p>
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleScanAgain}
-                  className="flex-1 px-6 py-4 bg-emerald-600 dark:bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:focus:ring-emerald-500 focus:ring-offset-2 transition-all text-lg"
-                >
-                  Scan Lagi
-                </button>
-                <button
-                  onClick={() => setShowReturnModal(true)}
-                  className="flex-1 px-6 py-4 bg-blue-600 dark:bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 focus:ring-offset-2 transition-all text-lg"
-                >
-                  <RotateCcw className="h-5 w-5 mr-2 inline" />
-                  Retur
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Return Modal */}
-      {showReturnModal && lastScannedProduct && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-zinc-800">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-zinc-100">Catat Retur</h2>
-                <button
-                  onClick={() => {
-                    setShowReturnModal(false)
-                    setReturnReason('')
-                    setReturnQuantity('1')
-                  }}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
-                >
-                  <XCircle className="h-6 w-6" />
-                </button>
-              </div>
-
-              <div className="mb-6">
-                <p className="text-sm text-slate-600 dark:text-zinc-400 mb-2">Produk</p>
-                <p className="font-medium text-slate-900 dark:text-zinc-100">{lastScannedProduct.name}</p>
-                <p className="text-sm text-slate-500 dark:text-zinc-400">
-                  {lastScannedProduct.sku} | {lastScannedProduct.color} / {lastScannedProduct.size}
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
-                  Jumlah Retur (max: {lastScannedQty})
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max={lastScannedQty}
-                  value={returnQuantity}
-                  onChange={(e) => setReturnQuantity(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
-                />
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-2">
-                  Alasan Retur
-                </label>
-                <select
-                  value={returnReason}
-                  onChange={(e) => setReturnReason(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
-                >
-                  <option value="">Pilih alasan retur...</option>
-                  {getReturnReasonOptions().map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowReturnModal(false)
-                    setReturnReason('')
-                    setReturnQuantity('1')
-                  }}
-                  className="flex-1 px-4 py-3 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:ring-offset-2 transition-all"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={handleReturnItem}
-                  disabled={!returnReason || isProcessing.current}
-                  className="flex-1 px-4 py-3 bg-blue-600 dark:bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 focus:ring-offset-2 disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed transition-all"
-                >
-                  {isProcessing.current ? 'Memproses...' : 'Catat Retur'}
-                </button>
-              </div>
+              <button
+                onClick={handleScanAgain}
+                className="w-full px-6 py-4 bg-emerald-600 dark:bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:focus:ring-emerald-500 focus:ring-offset-2 transition-all text-lg"
+              >
+                Scan Lagi
+              </button>
             </div>
           </div>
         </div>

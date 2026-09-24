@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Package, Scan, ShoppingCart, BarChart3, Menu, X, Clock, TrendingUp, LogOut, Moon, Sun, RotateCcw, Bell, Users, AlertTriangle } from "lucide-react"
+import { Package, Scan, ShoppingCart, BarChart3, Menu, X, Clock, TrendingUp, LogOut, Moon, Sun, RotateCcw, Bell, Users, AlertTriangle, LineChart } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useTheme } from "@/contexts/theme-context"
 import { supabase } from "@/lib/supabase"
@@ -25,6 +25,7 @@ export function Navigation() {
     { href: "/returns", label: "Retur & Rusak", icon: RotateCcw, requireRole: 'staff' },
     { href: "/history", label: "Riwayat", icon: Clock, requireRole: 'viewer' },
     { href: "/analytics", label: "Analitik", icon: TrendingUp, requireRole: 'viewer' },
+    { href: "/forecasting", label: "Forecasting", icon: LineChart, requireRole: 'viewer' },
     { href: "/products", label: "Produk", icon: Package, requireRole: 'staff' },
     { href: "/users", label: "Pengguna", icon: Users, requireRole: 'admin' },
   ]

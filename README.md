@@ -140,7 +140,19 @@ Sistem manajemen inventaris lengkap untuk warehouse management dengan fitur:
 - **Audit trail** di inventory_logs
 - **Staf-only access**
 
-### 7. Analitik
+### 7. Forecasting
+- **Prediksi stok** berdasarkan data scan SKU (OUTBOUND_PACKING) saja:
+  - Rata-rata penjualan harian per produk
+  - Prediksi kebutuhan stok 7 dan 30 hari ke depan
+  - Level urgensi (High/Medium/Low) berdasarkan threshold
+  - Rekomendasi restock otomatis
+- **Filter periode**: 7 hari, 30 hari, 90 hari terakhir
+- **Sorting options**: Berdasarkan urgensi, penjualan, atau nama
+- **Stats dashboard**: Produk perlu restock, perlu perhatian, total produk
+- **Auto-sync**: Data forecasting otomatis menyesuaikan jika history dihapus
+- **Viewer-only access**
+
+### 9. Analitik
 - **Metrik penjualan**:
   - Retur (filter tanggal atau bulan ini)
   - Barang rusak (filter tanggal atau bulan ini)
@@ -157,7 +169,7 @@ Sistem manajemen inventaris lengkap untuk warehouse management dengan fitur:
 - **Responsive chart layout**
 - **Viewer-only access**
 
-### 8. Riwayat Inventaris
+### 10. Riwayat Inventaris
 - **Audit trail lengkap** untuk semua transaksi:
   - INBOUND_QC (Barang masuk)
   - OUTBOUND_PACKING (Barang keluar)
@@ -174,7 +186,7 @@ Sistem manajemen inventaris lengkap untuk warehouse management dengan fitur:
 - **Clear history** dengan konfirmasi (hapus semua)
 - **Viewer-only access**
 
-### 9. User Management (Admin Only)
+### 11. User Management (Admin Only)
 - **Add user**: Email, password, full name, role
 - **Edit user**: Update informasi user
 - **Delete user**: Hapus user account
@@ -182,7 +194,7 @@ Sistem manajemen inventaris lengkap untuk warehouse management dengan fitur:
 - **User list** dengan filtering
 - **Role-based permissions enforcement**
 
-### 10. UI/UX Features
+### 12. UI/UX Features
 - **Dark/Light theme toggle**:
   - Persistence di localStorage
   - Toggle di navigasi desktop dan mobile
@@ -282,7 +294,8 @@ Aplikasi akan tersedia di [http://localhost:3000](http://localhost:3000)
 
 ### Default Users
 ```
-Admin: tenze@gudang.com / tenzeid
+Admin: admin / admin
+Staff: admin / admin
 Viewer: tonzc@gudang.com / tonzcid
 ```
 

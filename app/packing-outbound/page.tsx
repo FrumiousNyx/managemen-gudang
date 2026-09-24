@@ -33,11 +33,12 @@ export default function PackingOutbound() {
   const [showReturnModal, setShowReturnModal] = useState(false)
   const [returnReason, setReturnReason] = useState('')
   const [returnQuantity, setReturnQuantity] = useState('1')
-  const [autoCloseModal, setAutoCloseModal] = useState(true)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const quantityRef = useRef<HTMLInputElement>(null)
   const isProcessing = useRef(false)
+  const lastScannedBarcode = useRef<string>('')
+  const lastScanTime = useRef<number>(0)
   const { showToast } = useToast()
 
   // Camera handling
@@ -47,7 +48,7 @@ export default function PackingOutbound() {
         "reader",
         {
           fps: 30,
-          qrbox: { width: 300, height: 300 },
+          qrbox: { width: 250, height: 250 },
           aspectRatio: 1.0,
         },
         false
@@ -90,16 +91,6 @@ export default function PackingOutbound() {
       setQuantity('1')
     }
   }, [scanMode])
-
-  // Auto-close success modal when in camera mode
-  useEffect(() => {
-    if (showSuccessModal && isCameraActive && autoCloseModal) {
-      const timer = setTimeout(() => {
-        handleScanAgain()
-      }, 1000) // Auto-close after 1 second
-      return () => clearTimeout(timer)
-    }
-  }, [showSuccessModal, isCameraActive, autoCloseModal])
 
   // Play success beep sound
   const playSuccessSound = () => {
@@ -144,12 +135,19 @@ export default function PackingOutbound() {
   }
 
   const handleCameraScan = async (decodedText: string) => {
+    const sku = decodedText.trim()
+    const currentTime = Date.now()
+    
+    // Prevent duplicate scans within 1 second
+    if (sku === lastScannedBarcode.current && currentTime - lastScanTime.current < 1000) {
+      return
+    }
+    
     // Prevent multiple scans while processing
     if (isProcessing.current) {
       return
     }
 
-    const sku = decodedText.trim()
     const qty = parseInt(quantity) || 1
     
     if (!supabase) {
@@ -165,6 +163,8 @@ export default function PackingOutbound() {
     }
     
     isProcessing.current = true
+    lastScannedBarcode.current = sku
+    lastScanTime.current = currentTime
     
     try {
       // Use atomic RPC function for safe stock deduction
@@ -245,11 +245,13 @@ export default function PackingOutbound() {
       // Refresh router to update other pages
       router.refresh()
       
-      // Auto-resume scanner immediately
-      if (scannerRef.current) {
-        scannerRef.current.resume()
-      }
-      isProcessing.current = false
+      // Auto-resume scanner after 500ms for faster scanning
+      setTimeout(() => {
+        if (scannerRef.current) {
+          scannerRef.current.resume()
+        }
+        isProcessing.current = false
+      }, 500)
     } catch (error) {
       console.error('Error processing scan:', error)
       setErrorMessage('Error memproses pindai')
@@ -268,12 +270,21 @@ export default function PackingOutbound() {
     if (e.key === 'Enter' && barcodeInput.trim()) {
       e.preventDefault()
       
+      const sku = barcodeInput.trim()
+      const currentTime = Date.now()
+      
+      // Prevent duplicate scans within 1 second
+      if (sku === lastScannedBarcode.current && currentTime - lastScanTime.current < 1000) {
+        setBarcodeInput('')
+        if (inputRef.current) inputRef.current.focus()
+        return
+      }
+      
       // Prevent multiple scans while processing
       if (isProcessing.current) {
         return
       }
       
-      const sku = barcodeInput.trim()
       const qty = parseInt(quantity) || 1
       
       if (!supabase) {
@@ -286,6 +297,8 @@ export default function PackingOutbound() {
       }
       
       isProcessing.current = true
+      lastScannedBarcode.current = sku
+      lastScanTime.current = currentTime
       
       try {
         // Use atomic RPC function for safe stock deduction
@@ -388,6 +401,10 @@ export default function PackingOutbound() {
     setLastScannedQty(0)
     setBarcodeInput('')
     
+    // Reset duplicate scan prevention
+    lastScannedBarcode.current = ''
+    lastScanTime.current = 0
+    
     // Resume scanner if camera is active
     if (isCameraActive && scannerRef.current) {
       scannerRef.current.resume()
@@ -431,6 +448,10 @@ export default function PackingOutbound() {
     
     // Reset processing flag
     isProcessing.current = false
+    
+    // Reset duplicate scan prevention
+    lastScannedBarcode.current = ''
+    lastScanTime.current = 0
     
     // Focus back on input
     setTimeout(() => {
@@ -565,39 +586,26 @@ export default function PackingOutbound() {
             <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400">
               Metode Pindai
             </label>
-            <div className="flex items-center gap-2">
-              {isCameraActive && (
-                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-400">
-                  <input
-                    type="checkbox"
-                    checked={autoCloseModal}
-                    onChange={(e) => setAutoCloseModal(e.target.checked)}
-                    className="rounded border-slate-300 dark:border-zinc-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  Auto-tutup
-                </label>
+            <button
+              onClick={() => setIsCameraActive(!isCameraActive)}
+              className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                isCameraActive
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              {isCameraActive ? (
+                <>
+                  <CameraOff className="h-4 w-4 mr-1" />
+                  Matikan Kamera
+                </>
+              ) : (
+                <>
+                  <Camera className="h-4 w-4 mr-1" />
+                  Aktifkan Kamera
+                </>
               )}
-              <button
-                onClick={() => setIsCameraActive(!isCameraActive)}
-                className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  isCameraActive
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
-                }`}
-              >
-                {isCameraActive ? (
-                  <>
-                    <CameraOff className="h-4 w-4 mr-1" />
-                    Matikan Kamera
-                  </>
-                ) : (
-                  <>
-                    <Camera className="h-4 w-4 mr-1" />
-                    Aktifkan Kamera
-                  </>
-                )}
-              </button>
-            </div>
+            </button>
           </div>
 
           {isCameraActive ? (
@@ -657,7 +665,7 @@ export default function PackingOutbound() {
           <p className="mt-3 text-sm text-slate-500 dark:text-zinc-400">
             <Scan className="inline h-4 w-4 mr-1" />
             {isCameraActive 
-              ? 'Mode Kamera: Arahkan kamera ke QR Code pada polybag untuk pemindaian otomatis.'
+              ? 'Mode Kamera: Arahkan kamera ke QR Code pada polybag untuk pemindaian otomatis. Pindai cepat - otomatis stop setelah scan.'
               : 'Mode Manual: Gunakan pemindai barcode USB/Bluetooth atau ketik SKU manual.'}
             {scanMode === 'single' 
               ? ' Setiap pindai mengurangi 1 unit dari stok.'

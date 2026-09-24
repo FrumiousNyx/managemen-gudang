@@ -426,7 +426,7 @@ export default function Products() {
           .from('inventory_logs')
           .insert({
             product_id: productId,
-            type: adjustment > 0 ? 'INBOUND_QC' : 'OUTBOUND_PACKING',
+            type: 'MANUAL_ADJUSTMENT', // Use MANUAL_ADJUSTMENT to distinguish from actual SKU scans
             qty: adjustment,
             notes: `Penyesuaian stok massal dari halaman Produk - ${bulkAdjustmentReason}`
           })
@@ -584,7 +584,7 @@ export default function Products() {
           .from('inventory_logs')
           .insert({
             product_id: selectedProductForStock.id,
-            type: stockDiff > 0 ? 'INBOUND_QC' : 'OUTBOUND_PACKING',
+            type: 'MANUAL_ADJUSTMENT', // Use MANUAL_ADJUSTMENT to distinguish from actual SKU scans
             qty: stockDiff,
             notes: `Penyesuaian stok manual dari halaman Produk - ${adjustmentReason}`
           })

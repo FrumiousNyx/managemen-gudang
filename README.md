@@ -142,14 +142,21 @@ Sistem manajemen inventaris lengkap untuk warehouse management dengan fitur:
 
 ### 7. Forecasting
 - **Prediksi stok** berdasarkan data scan SKU (OUTBOUND_PACKING) saja:
+  - Hanya menggunakan data dari scan barcode/QR code di halaman Packing Outbound
+  - Tidak termasuk penyesuaian stok manual dari halaman Produk (MANUAL_ADJUSTMENT)
   - Rata-rata penjualan harian per produk
   - Prediksi kebutuhan stok 7 dan 30 hari ke depan
   - Level urgensi (High/Medium/Low) berdasarkan threshold
   - Rekomendasi restock otomatis
+- **View modes**:
+  - Top 10 Terlaris: Menampilkan 10 produk dengan penjualan tertinggi (default, lebih cepat)
+  - Semua Produk: Menampilkan semua produk dengan forecasting lengkap
 - **Filter periode**: 7 hari, 30 hari, 90 hari terakhir
 - **Sorting options**: Berdasarkan urgensi, penjualan, atau nama
 - **Stats dashboard**: Produk perlu restock, perlu perhatian, total produk
-- **Auto-sync**: Data forecasting otomatis menyesuaikan jika history dihapus
+- **Real-time updates**: Auto-refresh saat ada scan SKU baru atau history dihapus
+- **Performance**: Batch query optimization untuk loading cepat (seconds, bukan minutes)
+- **Last updated indicator**: Menampilkan waktu terakhir data di-refresh
 - **Viewer-only access**
 
 ### 9. Analitik

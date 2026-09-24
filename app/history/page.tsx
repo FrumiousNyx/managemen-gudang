@@ -37,11 +37,14 @@ export default function History() {
   const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [selectedLogs, setSelectedLogs] = useState<Set<string>>(new Set())
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const itemsPerPage = 20
   const { showToast } = useToast()
 
   useEffect(() => {
     fetchLogs()
+    setSelectedLogs(new Set()) // Reset selection when filters change
   }, [filter, startDate, endDate])
 
   // Auto-refresh every 30 seconds to get latest data
@@ -61,6 +64,7 @@ export default function History() {
 
     setLoading(true)
     setCurrentPage(1) // Reset to page 1 when filters change
+    setSelectedLogs(new Set()) // Reset selection when fetching
 
     try {
       // Create cache key based on filters
@@ -183,11 +187,61 @@ export default function History() {
       setLogs([])
       setCurrentPage(1)
       setShowClearConfirm(false)
+      setSelectedLogs(new Set())
     } catch (error) {
       console.error('Error clearing history:', error)
       showToast('error', 'Gagal menghapus riwayat')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (!supabase || selectedLogs.size === 0) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error } = await supabase
+        .from('inventory_logs')
+        .delete()
+        .in('id', Array.from(selectedLogs))
+
+      if (error) throw error
+
+      // Clear cache
+      cache.clear()
+      
+      showToast('success', `${selectedLogs.size} riwayat berhasil dihapus`)
+      
+      // Refresh logs
+      await fetchLogs(true)
+      setSelectedLogs(new Set())
+      setShowDeleteConfirm(false)
+    } catch (error) {
+      console.error('Error deleting selected logs:', error)
+      showToast('error', 'Gagal menghapus riwayat yang dipilih')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleLogSelection = (logId: string) => {
+    const newSelected = new Set(selectedLogs)
+    if (newSelected.has(logId)) {
+      newSelected.delete(logId)
+    } else {
+      newSelected.add(logId)
+    }
+    setSelectedLogs(newSelected)
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedLogs.size === paginatedLogs.length) {
+      setSelectedLogs(new Set())
+    } else {
+      setSelectedLogs(new Set(paginatedLogs.map(log => log.id)))
     }
   }
 
@@ -313,15 +367,15 @@ export default function History() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-zinc-100">Riwayat Inventaris</h1>
-        <p className="mt-2 text-slate-500 dark:text-zinc-400 text-sm sm:text-base">Lihat semua pergerakan stok barang masuk dan keluar</p>
+        <p className="mt-2 text-slate-500 dark:text-zinc-300 text-sm sm:text-base">Lihat semua pergerakan stok barang masuk dan keluar</p>
       </div>
 
       {/* Filter */}
-      <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 mb-6">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-sm p-6 mb-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-slate-600 dark:text-zinc-400" />
+              <Filter className="h-5 w-5 text-slate-600 dark:text-zinc-300" />
               <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">Filter</h2>
             </div>
             <div className="flex items-center gap-2">
@@ -342,6 +396,15 @@ export default function History() {
                 <Download className="h-4 w-4 mr-1" />
                 Export PDF
               </button>
+              {selectedLogs.size > 0 && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center px-3 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Hapus ({selectedLogs.size})
+                </button>
+              )}
               <button
                 onClick={() => setShowClearConfirm(true)}
                 className="flex items-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
@@ -407,8 +470,8 @@ export default function History() {
           </div>
 
           {/* Date Range Filter */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2 border-t border-slate-200 dark:border-zinc-800">
-            <Calendar className="h-5 w-5 text-slate-600 dark:text-zinc-400 mt-6 sm:mt-0" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2 border-t border-slate-200 dark:border-zinc-700">
+            <Calendar className="h-5 w-5 text-slate-600 dark:text-zinc-300 mt-6 sm:mt-0" />
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-zinc-400 mb-1">
@@ -418,7 +481,7 @@ export default function History() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                 />
               </div>
               <div>
@@ -429,7 +492,7 @@ export default function History() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-slate-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -439,7 +502,7 @@ export default function History() {
                   setStartDate('')
                   setEndDate('')
                 }}
-                className="mt-6 sm:mt-0 px-3 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors whitespace-nowrap"
+                className="mt-6 sm:mt-0 px-3 py-2 text-sm text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors whitespace-nowrap"
               >
                 Reset
               </button>
@@ -449,12 +512,12 @@ export default function History() {
       </div>
 
       {/* Logs List */}
-      <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-sm">
         {loading ? (
           <div className="p-6">
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="p-6 border-b border-slate-200 dark:border-zinc-800">
+                <div key={i} className="p-6 border-b border-slate-200 dark:border-zinc-700">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -481,15 +544,35 @@ export default function History() {
         ) : logs.length === 0 ? (
           <div className="p-8 text-center">
             <Clock className="h-12 w-12 text-slate-400 dark:text-zinc-600 mx-auto mb-4" />
-            <p className="text-slate-600 dark:text-zinc-400">Belum ada riwayat inventaris</p>
+            <p className="text-slate-600 dark:text-zinc-300">Belum ada riwayat inventaris</p>
           </div>
         ) : (
           <>
+            {/* Select All Button */}
+            <div className="px-6 py-3 border-b border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedLogs.size === paginatedLogs.length && paginatedLogs.length > 0}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 rounded border-slate-300 dark:border-zinc-600 text-slate-900 dark:text-zinc-100 focus:ring-slate-900 dark:focus:ring-zinc-100"
+                />
+                <span className="text-sm font-medium text-slate-700 dark:text-zinc-300">
+                  {selectedLogs.size === paginatedLogs.length && paginatedLogs.length > 0 ? 'Batal Pilih Semua' : 'Pilih Semua'}
+                </span>
+              </label>
+              {selectedLogs.size > 0 && (
+                <span className="text-sm text-slate-600 dark:text-zinc-300">
+                  {selectedLogs.size} dipilih
+                </span>
+              )}
+            </div>
+
             <div className="divide-y divide-slate-200 dark:divide-zinc-800">
               {Object.entries(groupedLogs).map(([dateKey, dateLogs]) => (
                 <div key={dateKey}>
                   {/* Date Header */}
-                  <div className="bg-slate-50 dark:bg-zinc-800 px-6 py-3 border-b border-slate-200 dark:border-zinc-800">
+                  <div className="bg-slate-50 dark:bg-zinc-800 px-6 py-3 border-b border-slate-200 dark:border-zinc-700">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
                       {formatShortDate(dateLogs[0].created_at)}
                     </h3>
@@ -497,49 +580,57 @@ export default function History() {
                   
                   {/* Logs for this date */}
                   {dateLogs.map((log) => (
-                    <div key={log.id} className="p-6 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+                    <div key={log.id} className={`p-6 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors ${selectedLogs.has(log.id) ? 'bg-blue-50 dark:bg-blue-950' : ''}`}>
                       <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getLogTypeColor(log.type)}`}>
-                              {getLogIcon(log.type)}
-                              <span className="ml-1">{getLogTypeLabel(log.type)}</span>
-                            </span>
-                            <span className="text-sm text-slate-500 dark:text-zinc-400">{formatDate(log.created_at)}</span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                            <div>
-                              <span className="text-slate-500 dark:text-zinc-400">Nama:</span>
-                              <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.name || '-'}</span>
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedLogs.has(log.id)}
+                            onChange={() => toggleLogSelection(log.id)}
+                            className="mt-1 w-4 h-4 rounded border-slate-300 dark:border-zinc-600 text-slate-900 dark:text-zinc-100 focus:ring-slate-900 dark:focus:ring-zinc-100"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getLogTypeColor(log.type)}`}>
+                                {getLogIcon(log.type)}
+                                <span className="ml-1">{getLogTypeLabel(log.type)}</span>
+                              </span>
+                              <span className="text-sm text-slate-500 dark:text-zinc-300">{formatDate(log.created_at)}</span>
                             </div>
-                            <div>
-                              <span className="text-slate-500 dark:text-zinc-400">SKU:</span>
-                              <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.sku || '-'}</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500 dark:text-zinc-400">Warna:</span>
-                              <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.color || '-'}</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500 dark:text-zinc-400">Ukuran:</span>
-                              <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.size || '-'}</span>
-                            </div>
-                          </div>
-                          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                            {(log.type === 'RETURN' || log.type === 'DAMAGE') && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
                               <div>
-                                <span className="text-slate-500 dark:text-zinc-400">Alasan/Tipe:</span>
-                                <span className="ml-2 text-slate-900 dark:text-zinc-100">
-                                  {log.type === 'RETURN' 
-                                    ? (log.return_reason ? getReturnReasonLabel(log.return_reason) : '-')
-                                    : (log.damage_type ? getDamageTypeLabel(log.damage_type) : '-')
-                                  }
-                                </span>
+                                <span className="text-slate-500 dark:text-zinc-300">Nama:</span>
+                                <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.name || '-'}</span>
                               </div>
-                            )}
-                            <div>
-                              <span className="text-slate-500 dark:text-zinc-400">Catatan:</span>
-                              <span className="ml-2 text-slate-900 dark:text-zinc-100">{log.notes || '-'}</span>
+                              <div>
+                                <span className="text-slate-500 dark:text-zinc-300">SKU:</span>
+                                <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.sku || '-'}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500 dark:text-zinc-300">Warna:</span>
+                                <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.color || '-'}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500 dark:text-zinc-300">Ukuran:</span>
+                                <span className="ml-2 font-medium text-slate-900 dark:text-zinc-100">{log.product?.size || '-'}</span>
+                              </div>
+                            </div>
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                              {(log.type === 'RETURN' || log.type === 'DAMAGE') && (
+                                <div>
+                                  <span className="text-slate-500 dark:text-zinc-300">Alasan/Tipe:</span>
+                                  <span className="ml-2 text-slate-900 dark:text-zinc-100">
+                                    {log.type === 'RETURN' 
+                                      ? (log.return_reason ? getReturnReasonLabel(log.return_reason) : '-')
+                                      : (log.damage_type ? getDamageTypeLabel(log.damage_type) : '-')
+                                    }
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="text-slate-500 dark:text-zinc-300">Catatan:</span>
+                                <span className="ml-2 text-slate-900 dark:text-zinc-100">{log.notes || '-'}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -547,7 +638,7 @@ export default function History() {
                           <div className={`text-2xl font-bold ${log.qty > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                             {log.qty > 0 ? '+' : ''}{log.qty}
                           </div>
-                          <div className="text-sm text-slate-500 dark:text-zinc-400">unit</div>
+                          <div className="text-sm text-slate-500 dark:text-zinc-300">unit</div>
                         </div>
                       </div>
                     </div>
@@ -558,15 +649,15 @@ export default function History() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="px-4 sm:px-6 py-4 border-t border-slate-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="text-sm text-slate-600 dark:text-zinc-400 text-center sm:text-left">
+              <div className="px-4 sm:px-6 py-4 border-t border-slate-200 dark:border-zinc-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-sm text-slate-600 dark:text-zinc-300 text-center sm:text-left">
                   Halaman {currentPage} dari {totalPages} ({logs.length} total)
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
+                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     <span className="hidden sm:inline">Sebelumnya</span>
@@ -575,7 +666,7 @@ export default function History() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
+                    className="flex items-center px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-1 sm:flex-none justify-center"
                   >
                     <span className="hidden sm:inline">Selanjutnya</span>
                     <span className="sm:hidden">Next</span>
@@ -591,7 +682,7 @@ export default function History() {
       {/* Clear History Confirmation Modal */}
       {showClearConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 max-w-md w-full">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-sm p-6 max-w-md w-full">
             <div className="flex items-center gap-3 mb-4">
               <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
                 <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
@@ -600,18 +691,52 @@ export default function History() {
                 Hapus Riwayat?
               </h3>
             </div>
-            <p className="text-slate-600 dark:text-zinc-400 mb-6">
+            <p className="text-slate-600 dark:text-zinc-300 mb-6">
               Apakah Anda yakin ingin menghapus semua riwayat transaksi? Data stok produk tidak akan terpengaruh.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowClearConfirm(false)}
-                className="flex-1 px-4 py-2 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all"
+                className="flex-1 px-4 py-2 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all"
               >
                 Batal
               </button>
               <button
                 onClick={handleClearHistory}
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-red-600 dark:bg-red-500 text-white font-medium rounded-xl hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {loading ? 'Menghapus...' : 'Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Selected Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-sm p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">
+                Hapus {selectedLogs.size} Riwayat?
+              </h3>
+            </div>
+            <p className="text-slate-600 dark:text-zinc-300 mb-6">
+              Apakah Anda yakin ingin menghapus {selectedLogs.size} riwayat yang dipilih? Data stok produk tidak akan terpengaruh.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-400 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteSelected}
                 disabled={loading}
                 className="flex-1 px-4 py-2 bg-red-600 dark:bg-red-500 text-white font-medium rounded-xl hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >

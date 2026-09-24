@@ -170,7 +170,8 @@ Sistem manajemen inventaris lengkap untuk warehouse management dengan fitur:
 - **Pagination** (20 items per page)
 - **Export PDF** untuk laporan
 - **Auto-refresh** setiap 30 detik
-- **Clear history** dengan konfirmasi
+- **Select & delete entries**: Pilih history tertentu untuk dihapus (fitur baru)
+- **Clear history** dengan konfirmasi (hapus semua)
 - **Viewer-only access**
 
 ### 9. User Management (Admin Only)
@@ -186,6 +187,8 @@ Sistem manajemen inventaris lengkap untuk warehouse management dengan fitur:
   - Persistence di localStorage
   - Toggle di navigasi desktop dan mobile
   - Direct access di mobile (tanpa hamburger menu)
+  - **Improved mobile compatibility** dengan touch event handling
+  - **Enhanced dark mode contrast** untuk keterbacaan lebih baik
 - **Responsive design**:
   - Mobile-first approach
   - Hamburger menu dengan toggle behavior

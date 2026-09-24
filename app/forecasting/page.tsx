@@ -31,11 +31,35 @@ export default function Forecasting() {
   const [period, setPeriod] = useState<ForecastPeriod>('30')
   const [sortBy, setSortBy] = useState<'urgency' | 'sales' | 'name'>('urgency')
   const [viewMode, setViewMode] = useState<ViewMode>('top10')
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const { showToast } = useToast()
 
   useEffect(() => {
     fetchForecasts()
   }, [period, viewMode])
+
+  // Real-time subscription for OUTBOUND_PACKING changes
+  useEffect(() => {
+    if (!supabase) return
+
+    const realtimeSubscription = supabase
+      .channel('inventory-changes')
+      .on('postgres_changes', { 
+        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+        schema: 'public', 
+        table: 'inventory_logs',
+        filter: 'type=eq.OUTBOUND_PACKING'
+      }, () => {
+        // Refresh forecasting when OUTBOUND_PACKING data changes
+        // This handles both new scans and deleted history
+        fetchForecasts()
+      })
+      .subscribe()
+
+    return () => {
+      realtimeSubscription.unsubscribe()
+    }
+  }, [viewMode, period])
 
   const fetchForecasts = async () => {
     if (!supabase) {
@@ -162,6 +186,7 @@ export default function Forecasting() {
       }
 
       setForecasts(sortedForecasts)
+      setLastUpdated(new Date()) // Update last updated timestamp
     } catch (error) {
       console.error('Error fetching forecasts:', error)
       setError(error instanceof Error ? error.message : 'Gagal memuat data forecasting')
@@ -191,6 +216,16 @@ export default function Forecasting() {
       case 'low':
         return <TrendingUp className="h-4 w-4" />
     }
+  }
+
+  const formatLastUpdated = (date: Date) => {
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    
+    if (diffMins < 1) return 'Baru saja'
+    if (diffMins < 60) return `${diffMins} menit yang lalu`
+    return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
   }
 
   if (loading) {
@@ -353,6 +388,11 @@ export default function Forecasting() {
               <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
+            {lastUpdated && (
+              <span className="text-xs text-slate-500 dark:text-zinc-400">
+                Update: {formatLastUpdated(lastUpdated)}
+              </span>
+            )}
           </div>
         </div>
       </div>

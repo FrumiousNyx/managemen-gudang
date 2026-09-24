@@ -1,132 +1,263 @@
-# Manajemen Gudang
+# Sistem Manajemen Inventaris Gudang
 
 Aplikasi web manajemen inventaris yang siap produksi, ramah mobile untuk merek pakaian menggunakan Next.js 16.3.3, Tailwind CSS 4, TypeScript, Lucide Icons, dan Supabase.
 
-## Fitur Utama
+## 📋 Ringkasan Proyek
 
-### 📊 Dasbor Stok
-- Metrik inventaris real-time dengan fungsi pencarian
-- **Smart filters**: Semua, Stok Menipis, Stok Habis
-- Filter berdasarkan Nama, SKU, Warna, atau Ukuran
-- Indikator status stok (Aman/Menipis/Habis) berdasarkan threshold per produk
-- **Export Excel** untuk data stok
-- Notifikasi browser untuk stok rendah
-- Tampilan cocok untuk desktop dan mobile
-- Skeleton loading states untuk UX yang lebih baik
+Sistem manajemen inventaris lengkap untuk warehouse management dengan fitur:
+- ✅ Autentikasi multi-role (Admin, Staff, Viewer)
+- ✅ Tracking stok real-time dengan threshold per produk
+- ✅ QC inbound dengan cetak label QR Code
+- ✅ Packing outbound dengan scan barcode (kamera & USB/Bluetooth)
+- ✅ Manajemen retur dan barang rusak
+- ✅ Analitik dengan visualisasi data
+- ✅ Audit trail lengkap
+- ✅ Import/Export Excel dan PDF
+- ✅ Notifikasi stok rendah
+- ✅ Dark/Light mode
+- ✅ Fully responsive (mobile-first)
 
-### 📥 Input Barang Masuk (QC Inbound)
-- Tambah barang masuk ke stok gudang
-- **Batch mode**: Tambah multiple produk sekaligus sebelum diproses
-- Cetak label thermal 40x20mm (horizontal layout) dengan QR Code
-- Label menampilkan: QR Code, Nama Produk, Warna/Ukuran, SKU
-- Audit trail otomatis untuk setiap transaksi
-- Caching untuk performa lebih cepat
+## 🏗️ Arsitektur Teknis
 
-### 📦 Pengemasan (Barang Keluar)
-- Pemindaian barcode multi-mode (Satu/Banyak)
-- Mode Satu Pindai: Setiap pindai mengurangi 1 unit
-- Mode Banyak Pindai: Masukkan jumlah, pindai sekali untuk mengurangi banyak unit
-- Operasi database aman untuk mencegah konflik
-- Validasi stok real-time untuk mencegah overselling
-- Feedback audio untuk sukses/error
-- Support kamera dan barcode scanner USB/Bluetooth
-
-### 📝 Master SKU (Produk)
-- Kelola SKU produk dan informasi inventaris
-- Tambah, edit, dan hapus produk
-- **Stock threshold per produk**: Edit threshold minimum stok per produk
-- Indikator status stok untuk setiap produk (berdasarkan threshold)
-- **Bulk operations**: Hapus multiple produk sekaligus
-- **Bulk stock update**: Update stok multiple produk sekaligus
-- **Mandatory adjustment reasons**: Wajib pilih alasan (Restock, Salah input, Perbaikan)
-- **Import Excel**: Batch import produk dari file Excel dengan template
-- **Export Excel**: Export daftar produk ke Excel
-- **Smart filters**: Semua, Stok Menipis, Stok Habis
-- Custom sorting by name, color, and size
-- Cetak label thermal per produk
-
-### 📈 Analitik Penjualan
-- Data penjualan real-time (Hari Ini, Minggu Ini, Bulan Ini)
-- **Visual charts dengan Recharts**:
-  - Line chart: Tren penjualan 7 hari terakhir
-  - Bar chart: Top 5 produk terlaris
-  - Pie chart: Breakdown warna dengan persentase
-  - Bar chart: Breakdown ukuran
-- Breakdown warna dan ukuran
-- Filter berdasarkan rentang tanggal
-- **Export PDF** untuk laporan penjualan
-
-### 📜 Riwayat Inventaris
-- Audit trail lengkap untuk semua transaksi
-- **Adjustment reasons**: Catatan alasan penyesuaian stok
-- Filter berdasarkan tipe (Masuk/Keluar) dan tanggal
-- Pagination untuk data yang banyak
-- **Export PDF** untuk laporan riwayat
-- Bersihkan riwayat dengan konfirmasi
-
-### 🔐 Keamanan & Autentikasi
-- Sistem login admin dengan environment variables
-- Session management dengan 24-hour expiration
-- Cookie-based authentication untuk middleware
-- Tidak ada hardcoded credentials di kode
-- Ganti admin credentials default di production
-
-### ⚡ Performance & Optimasi
-- **Caching layer** dengan TTL support untuk response time lebih cepat
-  - Products: 5 menit
-  - Analytics logs: 3 menit
-  - Inventory logs: 3 menit
-- **Database index optimization** untuk query yang lebih efisien
-- Selective field selection untuk mengurangi data transfer
-- Auto-clear expired cache setiap 5 menit
-
-### 🎨 UI/UX Modern
-- **Plus Jakarta Sans font** untuk typography modern
-- **Dark/Light theme toggle** dengan persistence
-- Responsive design untuk semua device
-- Skeleton loading states
-- Toast notifications untuk feedback
-
-## Teknologi
-
-- **Framework**: Next.js 16.3.3 (App Router, Turbopack)
+### Teknologi Stack
+- **Frontend Framework**: Next.js 16.3.3 (App Router, Turbopack)
+- **UI Framework**: React 18 dengan TypeScript
 - **Styling**: Tailwind CSS 4
-- **Database**: Supabase (PostgreSQL)
+- **Database**: Supabase (PostgreSQL 15+)
+- **Authentication**: Custom session-based auth dengan Supabase
 - **Icons**: Lucide React
 - **PDF Generation**: jsPDF, jsPDF-autotable
 - **QR Code**: react-qr-code, html5-qrcode
 - **Charts**: Recharts
-- **Excel Export**: xlsx
+- **Excel**: xlsx
 - **State Management**: React Context API
-- **TypeScript**: Full type safety
-- **Font**: Plus Jakarta Sans
+- **Font**: Plus Jakarta Sans (Google Fonts)
 
-## Memulai
+### Database Schema
+- **products**: Master SKU dengan threshold per produk
+- **inventory_logs**: Audit trail untuk semua transaksi
+- **users**: User management dengan RBAC (Role-Based Access Control)
+- **Fungsi RPC**: `deduct_product_stock` untuk atomic stock deduction
 
-### Prasyarat
-- Node.js 18+ terinstall
-- npm atau yarn package manager
+### Performance Optimizations
+- In-memory caching dengan TTL (Products: 5min, Logs: 3min)
+- Database indexes untuk query cepat
+- Selective field selection
+- Auto-clear expired cache
+- Skeleton loading states
+
+## 🎯 Fitur Lengkap
+
+### 1. Autentikasi & Authorization
+- **Multi-role system**: Admin, Staff, Viewer
+- **Login page** dengan email dan password
+- **Session management** dengan middleware protection
+- **Cookie-based authentication** untuk security
+- **RBAC enforcement** untuk akses halaman tertentu
+- **User management** (admin only) untuk tambah/edit/hapus user
+- Logout dengan session cleanup
+
+### 2. Dasbor Utama (Dashboard)
+- **Metrik real-time**:
+  - Total produk
+  - Produk stok menipis (di bawah threshold)
+  - Produk stok habis
+  - Retur barang bulan ini
+  - Barang rusak bulan ini
+- **Search functionality**: Cari berdasarkan Nama, SKU, Warna, Ukuran
+- **Smart filters**: Semua, Stok Menipis, Stok Habis
+- **Status indicators**: Aman (hijau), Menipis (kuning), Habis (merah)
+- **Export Excel** untuk data stok
+- **Browser notifications** untuk stok rendah
+- **Mobile notification bell** di pojok kiri atas
+- **Fully responsive** grid layout
+
+### 3. QC Inbound (Barang Masuk)
+- **Tambah stok** untuk produk yang ada
+- **Batch mode**: Tambah multiple produk sekaligus
+- **Validation**: SKU harus ada di database
+- **Cetak label thermal** 40x20mm:
+  - QR Code yang scannable
+  - Nama produk
+  - Warna dan ukuran
+  - SKU
+- **Audit trail otomatis** di inventory_logs
+- **Caching** untuk performa
+- **Staf-only access**
+
+### 4. Packing Outbound (Barang Keluar)
+- **Barcode scanning multi-mode**:
+  - Mode Satu Pindai: Setiap scan mengurangi 1 unit
+  - Mode Banyak Pindai: Masukkan jumlah, scan sekali
+- **Scan methods**:
+  - Kamera HP (QR Code detection)
+  - Barcode scanner USB/Bluetooth
+  - Manual input SKU
+- **Performance optimizations**:
+  - 30 FPS camera untuk detection cepat
+  - 500ms auto-resume delay
+  - Duplicate scan prevention (1 second cooldown)
+- **Audio feedback**: Beep untuk sukses, error tone untuk gagal
+- **Stock validation**: Mencegah overselling
+- **Atomic operations** dengan database locking
+- **Success modal** dengan sisa stok
+- **Recently scanned list** (10 items terakhir)
+- **Staf-only access**
+
+### 5. Master SKU (Produk)
+- **CRUD operations**: Tambah, edit, hapus produk
+- **Product variants**: Nama, SKU, Warna, Ukuran, Stok, Threshold
+- **Stock threshold per produk**: Editable per item
+- **Status indicators**: Aman/Menipis/Habis berdasarkan threshold
+- **Bulk operations**:
+  - Bulk delete (multiple selection)
+  - Bulk stock update
+- **Mandatory adjustment reasons**: Restock, Salah input, Perbaikan
+- **Excel integration**:
+  - Import batch produk dengan template
+  - Export daftar produk
+- **Smart filters**: Semua, Stok Menipis, Stok Habis
+- **Custom sorting**: By name, color, size
+- **Cetak label** per produk
+- **Pagination** untuk data yang banyak
+- **Staf-only access**
+
+### 6. Retur & Barang Rusak
+- **Pencatatan retur** dengan alasan:
+  - Salah kirim
+  - Kualitas buruk
+  - Salah size
+  - Lainnya
+- **Pencatatan barang rusak** dengan tipe:
+  - Sobek
+  - Kotor
+  - Rusak lainnya
+- **Filter by type**: Semua, Retur saja, Barang rusak saja
+- **Date range filter**
+- **Breakdown alasan/tipe** dengan statistik
+- **Export PDF** untuk laporan
+- **Auto-stock adjustment** (add back for returns)
+- **Audit trail** di inventory_logs
+- **Staf-only access**
+
+### 7. Analitik
+- **Metrik penjualan**:
+  - Retur (filter tanggal atau bulan ini)
+  - Barang rusak (filter tanggal atau bulan ini)
+- **Date range filter** untuk data custom
+- **Visual charts** (Recharts):
+  - Line chart: Tren penjualan 7 hari terakhir
+  - Bar chart: Top 5 produk terlaris
+  - Pie chart: Breakdown warna dengan persentase
+  - Bar chart: Breakdown ukuran
+- **Breakdown alasan retur** (top 5)
+- **Breakdown tipe kerusakan** (top 5)
+- **Export PDF** untuk laporan lengkap
+- **Refresh button** untuk data real-time
+- **Responsive chart layout**
+- **Viewer-only access**
+
+### 8. Riwayat Inventaris
+- **Audit trail lengkap** untuk semua transaksi:
+  - INBOUND_QC (Barang masuk)
+  - OUTBOUND_PACKING (Barang keluar)
+  - RETURN (Retur)
+  - DAMAGE (Barang rusak)
+- **Filter by type**: Semua, Masuk, Keluar, Retur, Rusak
+- **Date range filter**
+- **Search by SKU/nama produk**
+- **Adjustment reasons display**
+- **Pagination** (20 items per page)
+- **Export PDF** untuk laporan
+- **Auto-refresh** setiap 30 detik
+- **Clear history** dengan konfirmasi
+- **Viewer-only access**
+
+### 9. User Management (Admin Only)
+- **Add user**: Email, password, full name, role
+- **Edit user**: Update informasi user
+- **Delete user**: Hapus user account
+- **Role assignment**: Admin, Staff, Viewer
+- **User list** dengan filtering
+- **Role-based permissions enforcement**
+
+### 10. UI/UX Features
+- **Dark/Light theme toggle**:
+  - Persistence di localStorage
+  - Toggle di navigasi desktop dan mobile
+  - Direct access di mobile (tanpa hamburger menu)
+- **Responsive design**:
+  - Mobile-first approach
+  - Hamburger menu dengan toggle behavior
+  - Compact layout untuk mobile
+  - Touch-friendly buttons
+- **Skeleton loading states** untuk semua halaman
+- **Toast notifications** untuk feedback
+- **Modal dialogs** untuk konfirmasi dan input
+- **Smooth animations** dan transitions
+- **Accessibility**: ARIA labels, keyboard navigation
+
+## 🛠️ Teknologi
+
+### Frontend
+- **Framework**: Next.js 16.3.3 (App Router, Turbopack)
+- **Language**: TypeScript (full type safety)
+- **Styling**: Tailwind CSS 4
+- **Icons**: Lucide React
+- **State Management**: React Context API
+- **Font**: Plus Jakarta Sans (Google Fonts)
+
+### Backend & Database
+- **Database**: Supabase (PostgreSQL 15+)
+- **ORM**: Supabase Client SDK
+- **RPC Functions**: Custom database functions untuk atomic operations
+- **Row Level Security (RLS)**: Production-ready security
+
+### Libraries & Integrations
+- **PDF Generation**: jsPDF, jsPDF-autotable
+- **QR Code**: react-qr-code, html5-qrcode
+- **Charts**: Recharts
+- **Excel**: xlsx
+- **Barcode Scanning**: html5-qrcode (camera + USB/Bluetooth)
+- **Authentication**: Custom session-based with cookies
+
+### Performance
+- **Caching**: In-memory cache dengan TTL
+- **Optimization**: Database indexes, selective field selection
+- **Build**: Turbopack untuk build times cepat
+
+## 📦 Installation & Setup
+
+### Prerequisites
+- Node.js 18+ atau 20+
+- npm, yarn, atau pnpm package manager
 - Akun Supabase (tier gratis bisa digunakan)
+- Git untuk version control
 
-### Installation
+### Installation Steps
 
-1. Clone repository
+1. **Clone repository**
 ```bash
 git clone https://github.com/FrumiousNyx/managemen-gudang.git
 cd inventory-app
 ```
 
-2. Install dependencies
+2. **Install dependencies**
 ```bash
 npm install
+# atau
+yarn install
+# atau
+pnpm install
 ```
 
-3. Setup Database Supabase
+3. **Setup Database Supabase**
 - Buat proyek baru di [Supabase](https://supabase.com)
 - Jalankan skema SQL dari `supabase-schema.sql` di SQL Editor
+- Buat RPC function `deduct_product_stock`
 - Dapatkan Project URL dan anon key dari Settings → API
 
-4. Konfigurasi environment variables
+4. **Configure environment variables**
 ```bash
 # Copy dari .env.example
 cp .env.example .env.local
@@ -135,36 +266,61 @@ cp .env.example .env.local
 Edit `.env.local`:
 ```bash
 # Konfigurasi Supabase
-NEXT_PUBLIC_SUPABASE_URL=url-proyek-supabase-anda
-NEXT_PUBLIC_SUPABASE_ANON_KEY=anon-key-supabase-anda
-
-# Konfigurasi Admin Login
-# Ganti dengan username dan password yang aman
-NEXT_PUBLIC_ADMIN_USERNAME=admin
-NEXT_PUBLIC_ADMIN_PASSWORD=admin123
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-5. Jalankan development server
+5. **Run development server**
 ```bash
 npm run dev
 ```
 
 Aplikasi akan tersedia di [http://localhost:3000](http://localhost:3000)
 
+### Default Users
+```
+Admin: tenze@gudang.com / tenzeid
+Viewer: tonzc@gudang.com / tonzcid
+```
+
+## 🔐 Security Features
+
+### Authentication
+- **Custom session-based authentication** dengan cookies
+- **Middleware protection** untuk semua protected routes
+- **24-hour session expiration**
+- **RBAC (Role-Based Access Control)**:
+  - Admin: Full access (products, users, semua operasi)
+  - Staff: QC inbound, packing outbound, retur, products
+  - Viewer: Dashboard, analytics, history (read-only)
+
+### Data Security
+- **No hardcoded credentials** di source code
+- **Environment variables** untuk sensitive data
+- **Row Level Security (RLS)** recommended untuk production
+- **Atomic database operations** untuk prevent race conditions
+- **Audit trail** untuk semua inventory changes
+
+### Best Practices
+- Ganti default credentials di production
+- Gunakan Supabase service role keys hanya server-side
+- Enable RLS policies di Supabase
+- Regular database backups
+- Monitor dan rotate API keys
+
 ## Environment Variables
 
-| Variable | Deskripsi | Default |
-|----------|-----------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL proyek Supabase | - |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key Supabase | - |
-| `NEXT_PUBLIC_ADMIN_USERNAME` | Username untuk login admin | admin |
-| `NEXT_PUBLIC_ADMIN_PASSWORD` | Password untuk login admin | admin |
+| Variable | Deskripsi | Required |
+|----------|-----------|----------|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL proyek Supabase | ✅ Yes |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key Supabase | ✅ Yes |
 
-## Skema Database
+## 🗄️ Database Schema
 
 Aplikasi menggunakan Supabase PostgreSQL dengan tabel berikut:
 
 ### `products`
+Master SKU dan informasi produk
 - `id`: UUID (Primary Key)
 - `sku`: TEXT (Unique) - SKU produk
 - `name`: TEXT - Nama produk
@@ -175,22 +331,27 @@ Aplikasi menggunakan Supabase PostgreSQL dengan tabel berikut:
 - `created_at`: TIMESTAMP - Waktu dibuat
 
 ### `inventory_logs`
+Audit trail untuk semua transaksi
 - `id`: UUID (Primary Key)
 - `product_id`: UUID (Foreign Key ke products)
-- `type`: TEXT - Tipe transaksi (INBOUND_QC/OUTBOUND_PACKING)
+- `type`: TEXT - Tipe transaksi (INBOUND_QC, OUTBOUND_PACKING, RETURN, DAMAGE)
 - `qty`: INTEGER - Jumlah perubahan stok
 - `notes`: TEXT - Catatan transaksi (termasuk alasan penyesuaian)
+- `return_reason`: TEXT - Alasan retur (untuk type RETURN)
+- `damage_type`: TEXT - Tipe kerusakan (untuk type DAMAGE)
 - `created_at`: TIMESTAMP - Waktu transaksi
 
-### Database Functions
-- `update_stock_with_log`: Update stok dan log transaksi
-- `deduct_product_stock`: Fungsi aman untuk pengurangan stok dengan row locking
+### `users`
+User management dengan RBAC
+- `id`: UUID (Primary Key)
+- `email`: TEXT (Unique) - Email user
+- `password_hash`: TEXT - Hash password
+- `full_name`: TEXT - Nama lengkap
+- `role`: TEXT - Role user (admin, staff, viewer)
+- `created_at`: TIMESTAMP - Waktu dibuat
 
-### Migration
-Untuk database yang sudah ada, jalankan migration ini di Supabase SQL Editor:
-```sql
-ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_threshold INTEGER DEFAULT 40 CHECK (stock_threshold > 0);
-```
+### Database Functions
+- `deduct_product_stock`: Fungsi aman untuk pengurangan stok dengan row locking dan validation
 
 ### Indexes
 - `idx_products_sku`: Index untuk pencarian SKU
@@ -202,57 +363,11 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_threshold INTEGER DEFAULT 40
 - `idx_inventory_logs_created_at`: Index untuk sorting tanggal
 - `idx_inventory_logs_type_created_at`: Composite index untuk query analitik
 - `idx_inventory_logs_product_created_at`: Composite index untuk history queries
+- `idx_users_email`: Index untuk lookup user by email
 
 Lihat [supabase-schema.sql](./supabase-schema.sql) untuk skema database lengkap.
 
-## Fitur Unggulan
 
-### Stock Threshold Configuration
-- Set threshold minimum stok per produk
-- Status stok otomatis berdasarkan threshold (Aman/Menipis/Habis)
-- Edit threshold di modal adjustment stok
-- Fallback ke logic nama-based untuk data legacy
-- Import/Export Excel mendukung kolom threshold
-
-### Mandatory Adjustment Reasons
-- Alasan penyesuaian stok wajib untuk audit trail
-- Kategori: Restock, Salah input, Perbaikan
-- Diterapkan ke individual dan bulk stock adjustment
-- Alasan dicatat di inventory_logs
-
-### Smart Search & Filters
-- **Dashboard**: Quick filters (Semua, Stok Menipis, Stok Habis)
-- **Products**: Status filters + search by SKU/nama/warna/ukuran
-- Filters bekerja bersama dengan sorting dan export
-
-### Batch QC Inbound
-- Toggle batch mode untuk tambah multiple produk sekaligus
-- List batch items dengan quantity dan remove option
-- Process semua items sekaligus dengan "Proses Semua Batch"
-- Success/failure reporting untuk batch operations
-
-### Bulk Operations
-- **Bulk Delete**: Hapus multiple produk sekaligus
-- **Bulk Stock Update**: Update stok multiple produk sekaligus
-- Validasi dan mandatory reason untuk semua bulk operations
-
-### Excel Integration
-- **Export Excel**: Export data dari Dashboard dan Products
-- **Import Excel**: Batch import produk dengan template
-- Support kolom: SKU, Nama, Warna, Ukuran, Stok, Threshold
-- Template Excel tersedia untuk download
-
-### Notifications
-- Browser notifications untuk stok rendah
-- Permission management dengan tombol aktifasi
-- Summary notification untuk semua produk stok rendah
-
-### Visual Analytics
-- Line chart: Tren penjualan 7 hari terakhir
-- Bar chart: Top 5 produk terlaris
-- Pie chart: Breakdown warna dengan persentase
-- Bar chart: Breakdown ukuran
-- Responsive dan support dark mode
 
 ## Instruksi Setup Detail
 

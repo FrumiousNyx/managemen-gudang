@@ -47,36 +47,51 @@ export default function Forecasting() {
     setLoading(true)
     setError(null)
     try {
-      // Get all products
-      const { data: products, error: productsError } = await supabase
+      // Calculate days in period
+      const daysInPeriod = parseInt(period)
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - daysInPeriod)
+
+      // SINGLE BATCH QUERY: Get all relevant inventory_logs at once
+      const { data: logs, error: logsError } = await supabase
+        .from('inventory_logs')
+        .select('product_id, qty, created_at')
+        .eq('type', 'OUTBOUND_PACKING') // Only scan data
+        .gte('created_at', startDate.toISOString())
+        .order('created_at', { ascending: true })
+
+      if (logsError) throw logsError
+
+      // Group logs by product_id
+      const logsByProduct = new Map<string, typeof logs>()
+      for (const log of logs || []) {
+        if (!logsByProduct.has(log.product_id)) {
+          logsByProduct.set(log.product_id, [])
+        }
+        logsByProduct.get(log.product_id)!.push(log)
+      }
+
+      // Get only products that have scan data (if top10 mode) or all products
+      let productsQuery = supabase
         .from('products')
         .select('*')
         .order('name', { ascending: true })
+
+      // If top10 mode, only fetch products that have scan data to reduce data transfer
+      if (viewMode === 'top10' && logsByProduct.size > 0) {
+        productsQuery = productsQuery.in('id', Array.from(logsByProduct.keys()))
+      }
+
+      const { data: products, error: productsError } = await productsQuery
 
       if (productsError) throw productsError
 
       const productsList = products || []
       const forecastData: ForecastData[] = []
 
-      // Calculate days in period
-      const daysInPeriod = parseInt(period)
-      const startDate = new Date()
-      startDate.setDate(startDate.getDate() - daysInPeriod)
-
-      // Process each product
+      // Process each product using already-fetched logs
       for (const product of productsList) {
-        // Get ONLY OUTBOUND_PACKING logs (scan data) for this product
-        const { data: logs, error: logsError } = await supabase
-          .from('inventory_logs')
-          .select('qty, created_at')
-          .eq('product_id', product.id)
-          .eq('type', 'OUTBOUND_PACKING') // Only scan data
-          .gte('created_at', startDate.toISOString())
-          .order('created_at', { ascending: true })
-
-        if (logsError) throw logsError
-
-        const scanLogs = logs || []
+        const scanLogs = logsByProduct.get(product.id) || []
         const totalSales = scanLogs.reduce((sum, log) => sum + Math.abs(log.qty), 0)
         const daysWithSales = new Set(scanLogs.map(log => 
           new Date(log.created_at).toDateString()

@@ -58,14 +58,33 @@ Untuk mendukung fitur edit stok admin dengan alasan penyesuaian, jalankan migrat
 
 Ini akan menambahkan tipe 'MANUAL_ADJUSTMENT' ke constraint `inventory_logs_type_check`, yang diperlukan untuk fitur edit stok admin.
 
-### 2.4 Dapatkan Kredensial Supabase
+### 2.5 Setup User Accounts
+
+After running the main schema and manual adjustment migration, run the user setup migration:
+
+1. In SQL Editor Supabase, open "New Query" again
+2. Copy isi dari `migration-add-staff-viewer.sql` dari root proyek
+3. Paste ke SQL editor
+4. Klik "Run" untuk menjalankan migration
+
+Ini akan membuat 3 user dengan kredensial berikut:
+- **Admin:** admin@gudang.com / admin123 (role: admin)
+- **Staff:** staff@gudang.com / staff123 (role: staff)
+- **Viewer:** viewer@gudang.com / viewer123 (role: viewer)
+
+Atau, Anda bisa menjalankan script setup otomatis:
+```bash
+node update-staff-credentials.js
+```
+
+### 2.6 Dapatkan Kredensial Supabase
 
 1. Di dashboard proyek Supabase Anda, buka "Settings" → "API"
 2. Copy nilai berikut:
    - Project URL
    - anon/public key
 
-## Langkah 4: Environment Variables
+## Langkah 5: Environment Variables
 
 Buat file `.env.local` di root proyek:
 
@@ -79,7 +98,7 @@ Ganti nilai placeholder dengan kredensial Supabase Anda dari Langkah 2.3.
 
 **Penting:** Jangan pernah commit `.env.local` ke version control. Sudah ada di `.gitignore`.
 
-## Langkah 5: Jalankan Development Server
+## Langkah 6: Jalankan Development Server
 
 Jalankan development server:
 
@@ -89,7 +108,7 @@ npm run dev
 
 Aplikasi akan tersedia di [http://localhost:3000](http://localhost:3000)
 
-## Langkah 6: Fitur Aplikasi
+## Langkah 7: Fitur Aplikasi
 
 ### Dasbor Stok (Halaman Utama)
 - Metrik inventaris real-time
@@ -222,7 +241,7 @@ Sistem menggunakan penguncian baris PostgreSQL melalui fungsi RPC Supabase untuk
 - Mencegah overselling dan menjaga akurasi inventaris
 - Membedakan antara error "SKU tidak ditemukan" dan "stok tidak cukup"
 
-## Langkah 7: Setup Pemindai Barcode
+## Langkah 8: Setup Pemindai Barcode
 
 ### Hardware yang Direkomendasikan
 - Pemindai Barcode USB (bertindak sebagai input keyboard)
@@ -249,7 +268,7 @@ Sistem menggunakan penguncian baris PostgreSQL melalui fungsi RPC Supabase untuk
 5. Feedback audio mengkonfirmasi pindai sukses
 6. Field input auto-focus untuk pindai berkelanjutan
 
-## Langkah 9: Pemecahan Masalah
+## Langkah 9: Deployment Produksi
 
 ### Build untuk Produksi
 
@@ -273,7 +292,7 @@ npm run build
 - **Railway**: Deployment langsung dengan environment variables
 - **Self-hosted**: Gunakan `npm start` setelah build
 
-## Keamanan Database
+## Langkah 10: Keamanan Database
 
 Untuk penggunaan produksi, pertimbangkan untuk mengimplementasikan:
 
@@ -291,7 +310,7 @@ Untuk penggunaan produksi, pertimbangkan untuk mengimplementasikan:
 2. **Autentikasi**: Tambah autentikasi user untuk membatasi akses
 3. **API Keys**: Gunakan service role keys hanya untuk operasi sisi server
 
-## Pemecahan Masalah
+## Langkah 11: Pemecahan Masalah
 
 ### Masalah Koneksi Database
 - Verifikasi URL Supabase dan anon key Anda benar

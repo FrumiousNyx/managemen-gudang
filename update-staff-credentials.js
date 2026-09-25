@@ -11,60 +11,91 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-async function updateStaffCredentials() {
+async function setupUsers() {
   try {
-    console.log('Starting staff credentials update...')
+    console.log('Starting user setup for staff and viewer accounts...')
 
-    // Get the first staff user
-    const { data: staffUsers, error: staffError } = await supabase
+    // Setup Staff User
+    console.log('\n--- Setting up Staff User ---')
+    const { data: existingStaff, error: staffCheckError } = await supabase
       .from('users')
       .select('*')
-      .eq('role', 'staff')
-      .limit(1)
+      .eq('email', 'staff@gudang.com')
+      .single()
 
-    if (staffError) throw staffError
+    if (staffCheckError && staffCheckError.code !== 'PGRST116') {
+      throw staffCheckError
+    }
 
-    if (staffUsers.length === 0) {
-      console.log('No staff users found. Creating new admin staff account...')
-      
-      // Create new admin staff account
-      const { error: createError } = await supabase
+    if (!existingStaff) {
+      console.log('Creating staff user...')
+      const { error: createStaffError } = await supabase
         .from('users')
         .insert({
-          email: 'admin',
-          full_name: 'Admin Staff',
-          password_hash: 'admin',
+          email: 'staff@gudang.com',
+          full_name: 'Staff Gudang',
+          password_hash: 'staff123',
           role: 'staff'
         })
 
-      if (createError) throw createError
-      console.log('Created new admin staff account with username/password: admin/admin')
+      if (createStaffError) throw createStaffError
+      console.log('✓ Created staff user: staff@gudang.com / staff123')
     } else {
-      console.log(`Found ${staffUsers.length} staff user(s)`)
-
-      // Update the first staff user to admin/admin
-      const staffUser = staffUsers[0]
-      const { error } = await supabase
-        .from('users')
-        .update({ 
-          email: 'admin',
-          full_name: 'Admin Staff',
-          password_hash: 'admin' // Note: In production, this should be properly hashed
-        })
-        .eq('id', staffUser.id)
-
-      if (error) {
-        console.error(`Failed to update staff user ${staffUser.id}:`, error)
-      } else {
-        console.log(`Updated staff user ${staffUser.email} to admin/admin`)
-      }
+      console.log('✓ Staff user already exists: staff@gudang.com')
     }
 
-    console.log('Staff credentials update completed successfully!')
+    // Setup Viewer User
+    console.log('\n--- Setting up Viewer User ---')
+    const { data: existingViewer, error: viewerCheckError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', 'viewer@gudang.com')
+      .single()
+
+    if (viewerCheckError && viewerCheckError.code !== 'PGRST116') {
+      throw viewerCheckError
+    }
+
+    if (!existingViewer) {
+      console.log('Creating viewer user...')
+      const { error: createViewerError } = await supabase
+        .from('users')
+        .insert({
+          email: 'viewer@gudang.com',
+          full_name: 'Viewer Gudang',
+          password_hash: 'viewer123',
+          role: 'viewer'
+        })
+
+      if (createViewerError) throw createViewerError
+      console.log('✓ Created viewer user: viewer@gudang.com / viewer123')
+    } else {
+      console.log('✓ Viewer user already exists: viewer@gudang.com')
+    }
+
+    // Display all users
+    console.log('\n--- Current Users ---')
+    const { data: allUsers, error: usersError } = await supabase
+      .from('users')
+      .select('email, full_name, role, is_active')
+      .order('role')
+
+    if (usersError) throw usersError
+
+    allUsers.forEach(user => {
+      const status = user.is_active ? '✓ Active' : '✗ Inactive'
+      console.log(`${status} | ${user.role.padEnd(8)} | ${user.email.padEnd(25)} | ${user.full_name}`)
+    })
+
+    console.log('\n✓ User setup completed successfully!')
+    console.log('\nCredentials:')
+    console.log('  Admin: admin@gudang.com / admin123')
+    console.log('  Staff: staff@gudang.com / staff123')
+    console.log('  Viewer: viewer@gudang.com / viewer123')
   } catch (error) {
-    console.error('Error updating staff credentials:', error)
+    console.error('Error during user setup:', error)
     process.exit(1)
   }
 }
 
-updateStaffCredentials()
+setupUsers()

@@ -27,7 +27,7 @@ interface InventoryLog {
   }
 }
 
-type FilterType = 'all' | 'inbound' | 'outbound' | 'return' | 'damage'
+type FilterType = 'all' | 'inbound' | 'outbound' | 'return' | 'damage' | 'manual'
 
 export default function History() {
   const [logs, setLogs] = useState<InventoryLog[]>([])
@@ -96,6 +96,8 @@ export default function History() {
         query = query.eq('type', 'RETURN')
       } else if (filter === 'damage') {
         query = query.eq('type', 'DAMAGE')
+      } else if (filter === 'manual') {
+        query = query.eq('type', 'MANUAL_ADJUSTMENT')
       }
 
       if (startDate) {
@@ -250,7 +252,8 @@ export default function History() {
       'INBOUND_QC': 'Barang Masuk',
       'OUTBOUND_PACKING': 'Barang Keluar',
       'RETURN': 'Retur',
-      'DAMAGE': 'Barang Rusak'
+      'DAMAGE': 'Barang Rusak',
+      'MANUAL_ADJUSTMENT': 'Koreksi Stok'
     }
     return labels[type] || type
   }
@@ -260,7 +263,8 @@ export default function History() {
       'INBOUND_QC': 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950',
       'OUTBOUND_PACKING': 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950',
       'RETURN': 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950',
-      'DAMAGE': 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950'
+      'DAMAGE': 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950',
+      'MANUAL_ADJUSTMENT': 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950'
     }
     return colors[type] || 'text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950'
   }
@@ -270,7 +274,8 @@ export default function History() {
       'INBOUND_QC': <ArrowDown className="h-4 w-4" />,
       'OUTBOUND_PACKING': <ArrowUp className="h-4 w-4" />,
       'RETURN': <RotateCcw className="h-4 w-4" />,
-      'DAMAGE': <AlertTriangle className="h-4 w-4" />
+      'DAMAGE': <AlertTriangle className="h-4 w-4" />,
+      'MANUAL_ADJUSTMENT': <RefreshCw className="h-4 w-4" />
     }
     return icons[type] || <Package className="h-4 w-4" />
   }
@@ -290,7 +295,8 @@ export default function History() {
       'inbound': 'Barang Masuk',
       'outbound': 'Barang Keluar',
       'return': 'Retur',
-      'damage': 'Barang Rusak'
+      'damage': 'Barang Rusak',
+      'manual': 'Koreksi Stok'
     }
     doc.text(`Filter: ${filterLabels[filter]}`, 14, 30)
     
@@ -466,6 +472,16 @@ export default function History() {
               }`}
             >
               Barang Rusak
+            </button>
+            <button
+              onClick={() => setFilter('manual')}
+              className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                filter === 'manual'
+                  ? 'bg-purple-600 dark:bg-purple-500 text-white'
+                  : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+              }`}
+            >
+              Koreksi Stok
             </button>
           </div>
 

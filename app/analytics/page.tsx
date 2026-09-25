@@ -56,13 +56,15 @@ export default function Analytics() {
 
     setLoading(true)
     try {
-      // Force refresh to get all log types including RETURN and DAMAGE
+      // Force refresh to get all log types excluding MANUAL_ADJUSTMENT
+      // MANUAL_ADJUSTMENT is for corrections, not actual sales data
       const { data, error } = await supabase
         .from('inventory_logs')
         .select(`
           *,
           product:products(name, sku, color, size)
         `)
+        .not('type', 'eq', 'MANUAL_ADJUSTMENT')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -94,7 +96,7 @@ export default function Analytics() {
 
     const filtered = logs.filter(log => {
       const logDate = new Date(log.created_at)
-      return logDate >= start && logDate <= end
+      return logDate >= start && logDate <= end && log.type !== 'MANUAL_ADJUSTMENT'
     })
 
     setFilteredLogs(filtered)

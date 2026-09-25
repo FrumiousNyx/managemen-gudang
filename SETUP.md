@@ -47,14 +47,25 @@ Ini akan membuat:
 - Fungsi RPC aman untuk pengurangan stok (`deduct_product_stock`) untuk mencegah konflik
 - Migration statement untuk menambahkan stock_threshold ke tabel yang sudah ada
 
-### 2.3 Dapatkan Kredensial Supabase
+### 2.3 Jalankan Migration Tambahan
+
+Untuk mendukung fitur edit stok admin dengan alasan penyesuaian, jalankan migration berikut:
+
+1. Di SQL Editor Supabase, buka "New Query" lagi
+2. Copy isi dari `migration-manual-adjustment.sql` dari root proyek
+3. Paste ke SQL editor
+4. Klik "Run" untuk menjalankan migration
+
+Ini akan menambahkan tipe 'MANUAL_ADJUSTMENT' ke constraint `inventory_logs_type_check`, yang diperlukan untuk fitur edit stok admin.
+
+### 2.4 Dapatkan Kredensial Supabase
 
 1. Di dashboard proyek Supabase Anda, buka "Settings" → "API"
 2. Copy nilai berikut:
    - Project URL
    - anon/public key
 
-## Langkah 3: Environment Variables
+## Langkah 4: Environment Variables
 
 Buat file `.env.local` di root proyek:
 
@@ -68,7 +79,7 @@ Ganti nilai placeholder dengan kredensial Supabase Anda dari Langkah 2.3.
 
 **Penting:** Jangan pernah commit `.env.local` ke version control. Sudah ada di `.gitignore`.
 
-## Langkah 4: Jalankan Development Server
+## Langkah 5: Jalankan Development Server
 
 Jalankan development server:
 
@@ -78,7 +89,7 @@ npm run dev
 
 Aplikasi akan tersedia di [http://localhost:3000](http://localhost:3000)
 
-## Langkah 5: Fitur Aplikasi
+## Langkah 6: Fitur Aplikasi
 
 ### Dasbor Stok (Halaman Utama)
 - Metrik inventaris real-time
@@ -211,7 +222,7 @@ Sistem menggunakan penguncian baris PostgreSQL melalui fungsi RPC Supabase untuk
 - Mencegah overselling dan menjaga akurasi inventaris
 - Membedakan antara error "SKU tidak ditemukan" dan "stok tidak cukup"
 
-## Langkah 6: Setup Pemindai Barcode
+## Langkah 7: Setup Pemindai Barcode
 
 ### Hardware yang Direkomendasikan
 - Pemindai Barcode USB (bertindak sebagai input keyboard)
@@ -238,7 +249,7 @@ Sistem menggunakan penguncian baris PostgreSQL melalui fungsi RPC Supabase untuk
 5. Feedback audio mengkonfirmasi pindai sukses
 6. Field input auto-focus untuk pindai berkelanjutan
 
-## Langkah 7: Deployment Produksi
+## Langkah 9: Pemecahan Masalah
 
 ### Build untuk Produksi
 
